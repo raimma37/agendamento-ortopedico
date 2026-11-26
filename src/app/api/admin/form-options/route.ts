@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  const [insurances, visitTypes, kneeOptions] = await Promise.all([
+  const [insurances, visitTypes, kneeOptions, locations] = await Promise.all([
     prisma.insuranceOption.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
@@ -21,9 +21,12 @@ export async function GET() {
     prisma.kneeOption.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
+    prisma.locationOption.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
   ]);
 
-  return NextResponse.json({ insurances, visitTypes, kneeOptions });
+  return NextResponse.json({ insurances, visitTypes, kneeOptions, locations });
 }
 
 export async function POST(request: NextRequest) {
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { type, name, isPrivatePriority, active, sortOrder } = parsed.data;
+    const { type, name, address, isPrivatePriority, active, sortOrder } = parsed.data;
     let created;
     if (type === "insurance") {
       created = await prisma.insuranceOption.create({
@@ -51,6 +54,10 @@ export async function POST(request: NextRequest) {
     } else if (type === "visitType") {
       created = await prisma.visitTypeOption.create({
         data: { name, active, sortOrder },
+      });
+    } else if (type === "location") {
+      created = await prisma.locationOption.create({
+        data: { name, address: address || null, active, sortOrder },
       });
     } else {
       created = await prisma.kneeOption.create({
@@ -87,7 +94,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { type, id, name, isPrivatePriority, active, sortOrder } = parsed.data;
+    const { type, id, name, address, isPrivatePriority, active, sortOrder } = parsed.data;
     let updated;
     if (type === "insurance") {
       updated = await prisma.insuranceOption.update({
@@ -104,6 +111,16 @@ export async function PATCH(request: NextRequest) {
         where: { id },
         data: {
           ...(name !== undefined ? { name } : {}),
+          ...(active !== undefined ? { active } : {}),
+          ...(sortOrder !== undefined ? { sortOrder } : {}),
+        },
+      });
+    } else if (type === "location") {
+      updated = await prisma.locationOption.update({
+        where: { id },
+        data: {
+          ...(name !== undefined ? { name } : {}),
+          ...(address !== undefined ? { address: address || null } : {}),
           ...(active !== undefined ? { active } : {}),
           ...(sortOrder !== undefined ? { sortOrder } : {}),
         },
@@ -152,6 +169,8 @@ export async function DELETE(request: NextRequest) {
       await prisma.visitTypeOption.delete({ where: { id } });
     } else if (type === "knee") {
       await prisma.kneeOption.delete({ where: { id } });
+    } else if (type === "location") {
+      await prisma.locationOption.delete({ where: { id } });
     } else {
       return NextResponse.json({ error: "Tipo inválido" }, { status: 400 });
     }

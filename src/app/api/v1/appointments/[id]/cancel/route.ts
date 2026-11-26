@@ -46,6 +46,7 @@ export async function PATCH(
       insurance: { select: { id: true, name: true } },
       visitType: { select: { id: true, name: true } },
       kneeOption: { select: { id: true, name: true } },
+      location: { select: { id: true, name: true, address: true } },
     },
   });
 
@@ -64,6 +65,8 @@ export async function PATCH(
       dateBR: formatDateBR(dateISO),
       shift: updated.shift,
       shiftLabel: SHIFT_LABELS[updated.shift],
+      location: updated.location?.name ?? null,
+      locationAddress: updated.location?.address ?? null,
       insurance: updated.insurance.name,
       visitType: updated.visitType.name,
       kneeOption: updated.kneeOption.name,

@@ -26,6 +26,7 @@ interface ReportData {
     byVisitType: Record<string, number>;
   };
   insurances: Array<{ id: string; name: string }>;
+  locations: Array<{ id: string; name: string }>;
   rows: Array<{
     order: number;
     id: string;
@@ -34,6 +35,7 @@ interface ReportData {
     whatsappDisplay: string;
     dateBR: string;
     shiftLabel: string;
+    location: string | null;
     insurance: string;
     visitType: string;
     kneeOption: string;
@@ -54,6 +56,7 @@ function ReportsContent() {
   );
   const [shift, setShift] = useState("");
   const [insuranceId, setInsuranceId] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [status, setStatus] = useState("");
   const [hideCanceled, setHideCanceled] = useState(true);
   const [landscape, setLandscape] = useState(false);
@@ -69,9 +72,10 @@ function ReportsContent() {
     });
     if (shift) p.set("shift", shift);
     if (insuranceId) p.set("insuranceId", insuranceId);
+    if (locationId) p.set("locationId", locationId);
     if (status) p.set("status", status);
     return p.toString();
-  }, [startDate, endDate, shift, insuranceId, status, hideCanceled]);
+  }, [startDate, endDate, shift, insuranceId, locationId, status, hideCanceled]);
 
   const loadReport = useCallback(async () => {
     setLoading(true);
@@ -133,7 +137,7 @@ function ReportsContent() {
           </div>
         </div>
 
-        <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end shadow-lg shadow-black/20">
+        <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 items-end shadow-lg shadow-black/20">
           <div>
             <label className="block text-xs font-semibold text-[#9c99c4] mb-1">
               Data inicial
@@ -190,6 +194,24 @@ function ReportsContent() {
               {report?.insurances.map((i) => (
                 <option key={i.id} value={i.id}>
                   {i.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#9c99c4] mb-1">
+              Local
+            </label>
+            <select
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
+            >
+              <option value="">Todos</option>
+              {report?.locations?.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}
                 </option>
               ))}
             </select>
@@ -320,6 +342,7 @@ function ReportsContent() {
                     Nome do Paciente
                   </th>
                   <th className="border border-slate-900 px-2 py-2 text-left">WhatsApp</th>
+                  <th className="border border-slate-900 px-2 py-2 text-left">Local</th>
                   <th className="border border-slate-900 px-2 py-2 text-left">Convênio</th>
                   <th className="border border-slate-900 px-2 py-2 text-left">Tipo</th>
                   <th className="border border-slate-900 px-2 py-2 text-left">Joelho</th>
@@ -333,7 +356,7 @@ function ReportsContent() {
                 {report.rows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={report.filters.startDate !== report.filters.endDate ? 10 : 9}
+                      colSpan={report.filters.startDate !== report.filters.endDate ? 11 : 10}
                       className="border border-slate-900 px-3 py-6 text-center text-slate-600"
                     >
                       Nenhum agendamento para os filtros selecionados.
@@ -358,6 +381,9 @@ function ReportsContent() {
                       </td>
                       <td className="border border-slate-900 px-2 py-2.5 whitespace-nowrap">
                         {row.whatsappDisplay}
+                      </td>
+                      <td className="border border-slate-900 px-2 py-2.5">
+                        {row.location || "—"}
                       </td>
                       <td className="border border-slate-900 px-2 py-2.5">
                         {row.insurance}

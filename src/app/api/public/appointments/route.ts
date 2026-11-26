@@ -31,6 +31,7 @@ function serializePublicAppointment(
     insurance: { name: string };
     visitType: { name: string };
     kneeOption: { name: string };
+    location?: { name: string; address: string | null } | null;
     createdAt: Date;
   },
   options: { maskPhone?: boolean } = {}
@@ -49,6 +50,8 @@ function serializePublicAppointment(
     dateBR: formatDateBR(dateISO),
     shift: apt.shift,
     shiftLabel: SHIFT_LABELS[apt.shift],
+    location: apt.location?.name ?? null,
+    locationAddress: apt.location?.address ?? null,
     insurance: apt.insurance.name,
     visitType: apt.visitType.name,
     kneeOption: apt.kneeOption.name,

@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
+  MapPin,
   Printer,
   RefreshCw,
   Search,
@@ -39,6 +40,8 @@ interface DashboardResponse {
     privateReserveSlots: number;
     booked: number;
     source: string;
+    location: { id: string; name: string; address: string | null } | null;
+    allowedInsurances: Array<{ id: string; name: string }>;
   }>;
   appointments: Array<{
     id: string;
@@ -50,6 +53,7 @@ interface DashboardResponse {
     dateBR: string;
     shift: string;
     shiftLabel: string;
+    location: { id: string; name: string; address: string | null } | null;
     insurance: { id: string; name: string; isPrivatePriority: boolean };
     visitType: { id: string; name: string };
     kneeOption: { id: string; name: string };
@@ -63,6 +67,7 @@ interface DashboardResponse {
     insurances: Array<{ id: string; name: string }>;
     visitTypes: Array<{ id: string; name: string }>;
     kneeOptions: Array<{ id: string; name: string }>;
+    locations: Array<{ id: string; name: string }>;
   };
 }
 
@@ -116,6 +121,7 @@ export default function AdminDashboardPage() {
   const [insuranceId, setInsuranceId] = useState("");
   const [visitTypeId, setVisitTypeId] = useState("");
   const [kneeOptionId, setKneeOptionId] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
 
@@ -131,6 +137,7 @@ export default function AdminDashboardPage() {
       if (insuranceId) params.set("insuranceId", insuranceId);
       if (visitTypeId) params.set("visitTypeId", visitTypeId);
       if (kneeOptionId) params.set("kneeOptionId", kneeOptionId);
+      if (locationId) params.set("locationId", locationId);
       if (status) params.set("status", status);
       if (search.trim()) params.set("search", search.trim());
 
@@ -143,7 +150,7 @@ export default function AdminDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [date, shift, insuranceId, visitTypeId, kneeOptionId, status, search]);
+  }, [date, shift, insuranceId, visitTypeId, kneeOptionId, locationId, status, search]);
 
   useEffect(() => {
     void loadDashboard();
@@ -353,6 +360,24 @@ export default function AdminDashboardPage() {
                     </span>
                   )}
                 </div>
+                {(q.location || q.allowedInsurances.length > 0) && (
+                  <div className="mt-2 pt-2 border-t border-[#2b275c] space-y-1 text-[11px]">
+                    {q.location && (
+                      <div className="text-[#7dd3fc] font-semibold flex items-center gap-1">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {q.location.name}
+                      </div>
+                    )}
+                    {q.allowedInsurances.length > 0 && (
+                      <div className="text-[#c7c4eb]">
+                        Convênios:{" "}
+                        <span className="text-white font-semibold">
+                          {q.allowedInsurances.map((i) => i.name).join(", ")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -425,34 +450,54 @@ export default function AdminDashboardPage() {
           </select>
         </div>
 
-        {/* Filtro rápido de Joelho */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-[#8d8ab8] font-semibold">Joelho:</span>
-          <button
-            type="button"
-            onClick={() => setKneeOptionId("")}
-            className={`px-3 py-1.5 rounded-lg border font-semibold transition-all ${
-              kneeOptionId === ""
-                ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent shadow-sm"
-                : "bg-[#13112d] text-[#a8a5ce] border-[#312d66] hover:border-[#8b6dff]"
-            }`}
-          >
-            Todos
-          </button>
-          {data?.filters.kneeOptions.map((ko) => (
+        {/* Filtro rápido de Joelho e Local */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[#8d8ab8] font-semibold">Joelho:</span>
             <button
-              key={ko.id}
               type="button"
-              onClick={() => setKneeOptionId(ko.id)}
+              onClick={() => setKneeOptionId("")}
               className={`px-3 py-1.5 rounded-lg border font-semibold transition-all ${
-                kneeOptionId === ko.id
+                kneeOptionId === ""
                   ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent shadow-sm"
                   : "bg-[#13112d] text-[#a8a5ce] border-[#312d66] hover:border-[#8b6dff]"
               }`}
             >
-              {ko.name}
+              Todos
             </button>
-          ))}
+            {data?.filters.kneeOptions.map((ko) => (
+              <button
+                key={ko.id}
+                type="button"
+                onClick={() => setKneeOptionId(ko.id)}
+                className={`px-3 py-1.5 rounded-lg border font-semibold transition-all ${
+                  kneeOptionId === ko.id
+                    ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent shadow-sm"
+                    : "bg-[#13112d] text-[#a8a5ce] border-[#312d66] hover:border-[#8b6dff]"
+                }`}
+              >
+                {ko.name}
+              </button>
+            ))}
+          </div>
+
+          {data && data.filters.locations.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[#8d8ab8] font-semibold">Local:</span>
+              <select
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                className="h-8 px-2.5 rounded-lg border border-[#322e66] bg-[#13112d] text-white text-xs"
+              >
+                <option value="">Todos os locais</option>
+                {data.filters.locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -464,7 +509,7 @@ export default function AdminDashboardPage() {
               <tr>
                 <th className="px-4 py-3.5 font-semibold">Protocolo</th>
                 <th className="px-4 py-3.5 font-semibold">Paciente</th>
-                <th className="px-4 py-3.5 font-semibold">Turno</th>
+                <th className="px-4 py-3.5 font-semibold">Turno / Local</th>
                 <th className="px-4 py-3.5 font-semibold">Convênio</th>
                 <th className="px-4 py-3.5 font-semibold">Consulta / Joelho</th>
                 <th className="px-4 py-3.5 font-semibold">Status</th>
@@ -500,6 +545,12 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       <span className="font-medium text-[#d8d6f5]">{apt.shiftLabel}</span>
+                      {apt.location && (
+                        <div className="text-[11px] text-[#7dd3fc] flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          {apt.location.name}
+                        </div>
+                      )}
                       {apt.checkedInAt && (
                         <div className="text-[11px] text-sky-300 flex items-center gap-1 mt-0.5">
                           <Clock className="h-3 w-3" />

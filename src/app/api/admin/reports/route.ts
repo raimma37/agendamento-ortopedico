@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
   const endDate = sp.get("endDate") || startDate;
   const shift = sp.get("shift") as Shift | null;
   const insuranceId = sp.get("insuranceId");
+  const locationId = sp.get("locationId");
   const status = sp.get("status") as AppointmentStatus | null;
   const hideCanceled = sp.get("hideCanceled") !== "false";
   const format = sp.get("format");
@@ -49,6 +50,9 @@ export async function GET(request: NextRequest) {
   if (insuranceId) {
     where.insuranceId = insuranceId;
   }
+  if (locationId) {
+    where.locationId = locationId;
+  }
   if (
     status &&
     ["PENDING", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELED", "NO_SHOW"].includes(
@@ -60,7 +64,7 @@ export async function GET(request: NextRequest) {
     where.status = { not: "CANCELED" };
   }
 
-  const [settings, appointments, insurances] = await Promise.all([
+  const [settings, appointments, insurances, locations] = await Promise.all([
     prisma.clinicSettings.findUnique({ where: { id: 1 } }),
     prisma.appointment.findMany({
       where,
@@ -68,10 +72,12 @@ export async function GET(request: NextRequest) {
         insurance: { select: { id: true, name: true } },
         visitType: { select: { id: true, name: true } },
         kneeOption: { select: { id: true, name: true } },
+        location: { select: { id: true, name: true, address: true } },
       },
       orderBy: [{ date: "asc" }, { shift: "asc" }, { createdAt: "asc" }],
     }),
     prisma.insuranceOption.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+    prisma.locationOption.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
   ]);
 
   if (format === "csv") {
@@ -79,6 +85,7 @@ export async function GET(request: NextRequest) {
       "Ordem",
       "Data",
       "Turno",
+      "Local",
       "Protocolo",
       "Nome do Paciente",
       "WhatsApp",
@@ -104,6 +111,7 @@ export async function GET(request: NextRequest) {
           String(idx + 1),
           dateBR,
           SHIFT_LABELS[apt.shift],
+          apt.location?.name || "",
           apt.protocol,
           apt.patientName,
           formatWhatsappDisplay(apt.whatsapp),
@@ -175,6 +183,7 @@ export async function GET(request: NextRequest) {
       byVisitType,
     },
     insurances,
+    locations,
     rows: appointments.map((apt, idx) => {
       const dateISO = formatDateISO(apt.date);
       return {
@@ -188,6 +197,7 @@ export async function GET(request: NextRequest) {
         dateBR: formatDateBR(dateISO),
         shift: apt.shift,
         shiftLabel: SHIFT_LABELS[apt.shift],
+        location: apt.location?.name ?? null,
         insurance: apt.insurance.name,
         visitType: apt.visitType.name,
         kneeOption: apt.kneeOption.name,

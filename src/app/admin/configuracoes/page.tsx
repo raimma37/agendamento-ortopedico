@@ -2,12 +2,14 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Building2,
   Calendar as CalendarIcon,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ListChecks,
   Loader2,
+  MapPin,
   Plus,
   RotateCcw,
   Save,
@@ -26,6 +28,8 @@ interface WeeklyQuotaRow {
   maxSlots: number;
   privateReserveSlots: number;
   active: boolean;
+  locationId: string | null;
+  allowedInsuranceIds: string[];
 }
 
 interface DateExceptionRow {
@@ -36,11 +40,14 @@ interface DateExceptionRow {
   privateReserveSlots: number;
   isBlocked: boolean;
   reason: string | null;
+  locationId: string | null;
+  allowedInsuranceIds: string[];
 }
 
 interface FixedOptionItem {
   id: string;
   name: string;
+  address?: string | null;
   active: boolean;
   sortOrder: number;
   isPrivatePriority?: boolean;
@@ -51,6 +58,14 @@ interface ClinicSettingsData {
   bookingWindowDays: number;
   showRemainingSlots: boolean;
   protocolInstructions: string;
+}
+
+interface ShiftExceptionDraft {
+  enabled: boolean;
+  maxSlots: number;
+  privateReserveSlots: number;
+  locationId: string | null;
+  allowedInsuranceIds: string[];
 }
 
 const SHIFTS: Array<{ key: ShiftType; label: string }> = [
@@ -89,19 +104,44 @@ export default function AdminSettingsPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [exIsBlocked, setExIsBlocked] = useState(false);
   const [exReason, setExReason] = useState("");
-  const [exShifts, setExShifts] = useState<
-    Record<ShiftType, { enabled: boolean; maxSlots: number; privateReserveSlots: number }>
-  >({
-    MORNING: { enabled: true, maxSlots: 10, privateReserveSlots: 0 },
-    AFTERNOON: { enabled: false, maxSlots: 10, privateReserveSlots: 0 },
-    FULL_DAY: { enabled: false, maxSlots: 15, privateReserveSlots: 0 },
+  const [exShifts, setExShifts] = useState<Record<ShiftType, ShiftExceptionDraft>>({
+    MORNING: {
+      enabled: true,
+      maxSlots: 10,
+      privateReserveSlots: 0,
+      locationId: null,
+      allowedInsuranceIds: [],
+    },
+    AFTERNOON: {
+      enabled: false,
+      maxSlots: 10,
+      privateReserveSlots: 0,
+      locationId: null,
+      allowedInsuranceIds: [],
+    },
+    FULL_DAY: {
+      enabled: false,
+      maxSlots: 15,
+      privateReserveSlots: 0,
+      locationId: null,
+      allowedInsuranceIds: [],
+    },
   });
   const [savingDate, setSavingDate] = useState(false);
 
+  const [locations, setLocations] = useState<FixedOptionItem[]>([]);
   const [insurances, setInsurances] = useState<FixedOptionItem[]>([]);
   const [visitTypes, setVisitTypes] = useState<FixedOptionItem[]>([]);
   const [kneeOptions, setKneeOptions] = useState<FixedOptionItem[]>([]);
-  const [newName, setNewName] = useState({ insurance: "", visitType: "", knee: "" });
+  const [newName, setNewName] = useState({
+    location: "",
+    insurance: "",
+    visitType: "",
+    knee: "",
+  });
+  const [newLocationAddress, setNewLocationAddress] = useState("");
+  const [editingLocId, setEditingLocId] = useState<string | null>(null);
+  const [editingLocAddress, setEditingLocAddress] = useState("");
   const [newPrivatePriority, setNewPrivatePriority] = useState(false);
 
   const [settings, setSettings] = useState<ClinicSettingsData>({
@@ -112,6 +152,15 @@ export default function AdminSettingsPage() {
   });
   const [savingGeneral, setSavingGeneral] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const activeInsurances = useMemo(
+    () => insurances.filter((i) => i.active),
+    [insurances]
+  );
+  const activeLocations = useMemo(
+    () => locations.filter((l) => l.active),
+    [locations]
+  );
 
   function showToast(msg: string) {
     setToast(msg);
@@ -128,10 +177,17 @@ export default function AdminSettingsPage() {
       ]);
       if (wRes.ok) {
         const wJson = await wRes.json();
-        setWeeklyQuotas(wJson.quotas || []);
+        setWeeklyQuotas(
+          (wJson.quotas || []).map((q: WeeklyQuotaRow) => ({
+            ...q,
+            locationId: q.locationId ?? null,
+            allowedInsuranceIds: q.allowedInsuranceIds ?? [],
+          }))
+        );
       }
       if (oRes.ok) {
         const oJson = await oRes.json();
+        setLocations(oJson.locations || []);
         setInsurances(oJson.insurances || []);
         setVisitTypes(oJson.visitTypes || []);
         setKneeOptions(oJson.kneeOptions || []);
@@ -152,7 +208,13 @@ export default function AdminSettingsPage() {
     });
     if (res.ok) {
       const json = await res.json();
-      setExceptions(json.exceptions || []);
+      setExceptions(
+        (json.exceptions || []).map((ex: DateExceptionRow) => ({
+          ...ex,
+          locationId: ex.locationId ?? null,
+          allowedInsuranceIds: ex.allowedInsuranceIds ?? [],
+        }))
+      );
     }
   }, [calMonth]);
 
@@ -172,6 +234,8 @@ export default function AdminSettingsPage() {
         maxSlots: 10,
         privateReserveSlots: 0,
         active: false,
+        locationId: null,
+        allowedInsuranceIds: [],
       }
     );
   }
@@ -192,6 +256,8 @@ export default function AdminSettingsPage() {
             maxSlots: 10,
             privateReserveSlots: 0,
             active: false,
+            locationId: null,
+            allowedInsuranceIds: [],
             ...patch,
           },
         ];
@@ -200,6 +266,14 @@ export default function AdminSettingsPage() {
         q.dayOfWeek === dow && q.shift === shift ? { ...q, ...patch } : q
       );
     });
+  }
+
+  function toggleWeeklyInsurance(dow: number, shift: ShiftType, insId: string) {
+    const current = getQuota(dow, shift).allowedInsuranceIds;
+    const next = current.includes(insId)
+      ? current.filter((id) => id !== insId)
+      : [...current, insId];
+    updateQuotaLocal(dow, shift, { allowedInsuranceIds: next });
   }
 
   function toggleDayActive(dow: number, enable: boolean) {
@@ -256,25 +330,20 @@ export default function AdminSettingsPage() {
       const blocked = existing.some((e) => e.isBlocked);
       setExIsBlocked(blocked);
       setExReason(existing[0].reason || "");
+      const buildDraft = (shift: ShiftType, defMax: number): ShiftExceptionDraft => {
+        const found = existing.find((e) => e.shift === shift);
+        return {
+          enabled: Boolean(found && !found.isBlocked),
+          maxSlots: found?.maxSlots ?? defMax,
+          privateReserveSlots: found?.privateReserveSlots ?? 0,
+          locationId: found?.locationId ?? null,
+          allowedInsuranceIds: found?.allowedInsuranceIds ?? [],
+        };
+      };
       setExShifts({
-        MORNING: {
-          enabled: existing.some((e) => !e.isBlocked && e.shift === "MORNING"),
-          maxSlots: existing.find((e) => e.shift === "MORNING")?.maxSlots ?? 10,
-          privateReserveSlots:
-            existing.find((e) => e.shift === "MORNING")?.privateReserveSlots ?? 0,
-        },
-        AFTERNOON: {
-          enabled: existing.some((e) => !e.isBlocked && e.shift === "AFTERNOON"),
-          maxSlots: existing.find((e) => e.shift === "AFTERNOON")?.maxSlots ?? 10,
-          privateReserveSlots:
-            existing.find((e) => e.shift === "AFTERNOON")?.privateReserveSlots ?? 0,
-        },
-        FULL_DAY: {
-          enabled: existing.some((e) => !e.isBlocked && e.shift === "FULL_DAY"),
-          maxSlots: existing.find((e) => e.shift === "FULL_DAY")?.maxSlots ?? 15,
-          privateReserveSlots:
-            existing.find((e) => e.shift === "FULL_DAY")?.privateReserveSlots ?? 0,
-        },
+        MORNING: buildDraft("MORNING", 10),
+        AFTERNOON: buildDraft("AFTERNOON", 10),
+        FULL_DAY: buildDraft("FULL_DAY", 15),
       });
     } else {
       const [y, m, d] = dateStr.split("-").map(Number);
@@ -289,19 +358,38 @@ export default function AdminSettingsPage() {
           enabled: qM.active,
           maxSlots: qM.maxSlots,
           privateReserveSlots: qM.privateReserveSlots,
+          locationId: qM.locationId,
+          allowedInsuranceIds: [...qM.allowedInsuranceIds],
         },
         AFTERNOON: {
           enabled: qA.active,
           maxSlots: qA.maxSlots,
           privateReserveSlots: qA.privateReserveSlots,
+          locationId: qA.locationId,
+          allowedInsuranceIds: [...qA.allowedInsuranceIds],
         },
         FULL_DAY: {
           enabled: qF.active,
           maxSlots: qF.maxSlots,
           privateReserveSlots: qF.privateReserveSlots,
+          locationId: qF.locationId,
+          allowedInsuranceIds: [...qF.allowedInsuranceIds],
         },
       });
     }
+  }
+
+  function toggleExInsurance(shift: ShiftType, insId: string) {
+    setExShifts((prev) => {
+      const curr = prev[shift].allowedInsuranceIds;
+      const next = curr.includes(insId)
+        ? curr.filter((id) => id !== insId)
+        : [...curr, insId];
+      return {
+        ...prev,
+        [shift]: { ...prev[shift], allowedInsuranceIds: next },
+      };
+    });
   }
 
   async function saveDateException() {
@@ -312,6 +400,8 @@ export default function AdminSettingsPage() {
         shift: s.key,
         maxSlots: exShifts[s.key].maxSlots,
         privateReserveSlots: exShifts[s.key].privateReserveSlots,
+        locationId: exShifts[s.key].locationId || null,
+        allowedInsuranceIds: exShifts[s.key].allowedInsuranceIds,
       }));
 
       const res = await fetch("/api/admin/date-exceptions", {
@@ -349,7 +439,7 @@ export default function AdminSettingsPage() {
     }
   }
 
-  async function createOption(type: "insurance" | "visitType" | "knee") {
+  async function createOption(type: "location" | "insurance" | "visitType" | "knee") {
     const name = newName[type].trim();
     if (!name) return;
     const res = await fetch("/api/admin/form-options", {
@@ -358,6 +448,7 @@ export default function AdminSettingsPage() {
       body: JSON.stringify({
         type,
         name,
+        address: type === "location" ? newLocationAddress.trim() || null : undefined,
         isPrivatePriority: type === "insurance" ? newPrivatePriority : false,
         active: true,
         sortOrder: 99,
@@ -365,6 +456,7 @@ export default function AdminSettingsPage() {
     });
     if (res.ok) {
       setNewName((p) => ({ ...p, [type]: "" }));
+      if (type === "location") setNewLocationAddress("");
       if (type === "insurance") setNewPrivatePriority(false);
       await loadAll();
       showToast("Opção adicionada com sucesso!");
@@ -375,7 +467,7 @@ export default function AdminSettingsPage() {
   }
 
   async function patchOption(
-    type: "insurance" | "visitType" | "knee",
+    type: "location" | "insurance" | "visitType" | "knee",
     id: string,
     patch: Partial<FixedOptionItem>
   ) {
@@ -385,12 +477,16 @@ export default function AdminSettingsPage() {
       body: JSON.stringify({ type, id, ...patch }),
     });
     if (res.ok) {
+      setEditingLocId(null);
       await loadAll();
       showToast("Opção atualizada!");
     }
   }
 
-  async function deleteOption(type: "insurance" | "visitType" | "knee", id: string) {
+  async function deleteOption(
+    type: "location" | "insurance" | "visitType" | "knee",
+    id: string
+  ) {
     const res = await fetch(`/api/admin/form-options?type=${type}&id=${id}`, {
       method: "DELETE",
     });
@@ -435,7 +531,8 @@ export default function AdminSettingsPage() {
             Configurações
           </h1>
           <p className="text-sm text-[#9c99c4]">
-            Cotas semanais, datas individuais, opções fixas e parâmetros do consultório
+            Agenda semanal por local e convênio, datas individuais, locais e parâmetros do
+            consultório
           </p>
         </div>
         {toast && (
@@ -449,9 +546,9 @@ export default function AdminSettingsPage() {
       {/* Abas */}
       <div className="flex flex-wrap gap-2 border-b border-[#292657] pb-3.5">
         {[
-          { id: "weekly", label: "1. Dias da Semana e Quantidades", icon: Sliders },
+          { id: "weekly", label: "1. Grade Semanal (Locais e Convênios)", icon: Sliders },
           { id: "dates", label: "2. Datas Individuais", icon: CalendarIcon },
-          { id: "options", label: "3. Opções Fixas do Formulário", icon: ListChecks },
+          { id: "options", label: "3. Locais e Opções do Formulário", icon: ListChecks },
           { id: "general", label: "4. Parâmetros Gerais", icon: Settings2 },
         ].map((t) => {
           const Icon = t.icon;
@@ -477,15 +574,26 @@ export default function AdminSettingsPage() {
       {/* ================= ABA 1: DIAS DA SEMANA ================= */}
       {tab === "weekly" && (
         <div className="space-y-4">
-          <div className="rounded-2xl bg-[#221d52] border border-[#453d91] p-4 text-xs text-[#d6d2ff] flex items-start gap-2.5">
-            <ShieldAlert className="h-4 w-4 text-[#a792ff] shrink-0 mt-0.5" />
-            <span>
-              <strong className="text-white">Reserva Silenciosa Particular:</strong>{" "}
-              Quando configurada (&gt; 0), essas vagas ficam ocultas e reservadas
-              exclusivamente para quem selecionar um convênio marcado como{" "}
-              <em>Prioridade Silenciosa (Particular)</em>. O portal público nunca exibe
-              essa regra.
-            </span>
+          <div className="rounded-2xl bg-[#221d52] border border-[#453d91] p-4 text-xs text-[#d6d2ff] space-y-1.5">
+            <div className="flex items-start gap-2.5">
+              <MapPin className="h-4 w-4 text-[#4ea8ff] shrink-0 mt-0.5" />
+              <span>
+                <strong className="text-white">Personalização por Dia e Turno:</strong>{" "}
+                Defina o <strong>Local de Atendimento</strong> (ex: Hospital Porto Dias,
+                Clínica Particular) e quais <strong>Convênios</strong> são aceitos em cada
+                turno. Se deixar <em>Todos os convênios</em> selecionado, qualquer convênio
+                ativo poderá agendar naquele turno.
+              </span>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <ShieldAlert className="h-4 w-4 text-[#a792ff] shrink-0 mt-0.5" />
+              <span>
+                <strong className="text-white">Reserva Silenciosa Particular:</strong>{" "}
+                Quando configurada (&gt; 0), essas vagas ficam ocultas e reservadas
+                exclusivamente para convênios marcados como{" "}
+                <em>Prioridade Silenciosa (Particular)</em>.
+              </span>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -512,19 +620,20 @@ export default function AdminSettingsPage() {
                   </div>
 
                   {anyActive && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                       {SHIFTS.map((s) => {
                         const q = getQuota(dow, s.key);
+                        const allInsurances = q.allowedInsuranceIds.length === 0;
                         return (
                           <div
                             key={s.key}
-                            className={`rounded-xl border p-3.5 transition-all ${
+                            className={`rounded-xl border p-3.5 transition-all space-y-3 ${
                               q.active
                                 ? "border-[#6344ff]/60 bg-[#221e4d]"
                                 : "border-[#2a2657] bg-[#141230] opacity-65"
                             }`}
                           >
-                            <label className="flex items-center gap-2 text-sm font-bold text-white mb-2.5 cursor-pointer">
+                            <label className="flex items-center gap-2 text-sm font-bold text-white cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={q.active}
@@ -539,43 +648,121 @@ export default function AdminSettingsPage() {
                             </label>
 
                             {q.active && (
-                              <div className="grid grid-cols-2 gap-2.5 text-xs">
-                                <div>
-                                  <label className="block text-[#9c99c4] mb-1">
-                                    Máx. vagas
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    max={200}
-                                    value={q.maxSlots}
-                                    onChange={(e) =>
-                                      updateQuotaLocal(dow, s.key, {
-                                        maxSlots: Math.max(0, Number(e.target.value)),
-                                      })
-                                    }
-                                    className="w-full h-9 px-2.5 rounded-lg border border-[#3a3675] bg-[#13112d] text-white font-bold"
-                                  />
+                              <div className="space-y-3 text-xs">
+                                <div className="grid grid-cols-2 gap-2.5">
+                                  <div>
+                                    <label className="block text-[#9c99c4] mb-1">
+                                      Máx. vagas
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={200}
+                                      value={q.maxSlots}
+                                      onChange={(e) =>
+                                        updateQuotaLocal(dow, s.key, {
+                                          maxSlots: Math.max(0, Number(e.target.value)),
+                                        })
+                                      }
+                                      className="w-full h-9 px-2.5 rounded-lg border border-[#3a3675] bg-[#13112d] text-white font-bold"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[#b39eff] mb-1">
+                                      Reserva Part.
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={q.maxSlots}
+                                      value={q.privateReserveSlots}
+                                      onChange={(e) =>
+                                        updateQuotaLocal(dow, s.key, {
+                                          privateReserveSlots: Math.max(
+                                            0,
+                                            Number(e.target.value)
+                                          ),
+                                        })
+                                      }
+                                      className="w-full h-9 px-2.5 rounded-lg border border-[#5c4ab8] bg-[#13112d] text-white font-bold"
+                                    />
+                                  </div>
                                 </div>
+
+                                {/* Local de Atendimento */}
                                 <div>
-                                  <label className="block text-[#b39eff] mb-1">
-                                    Reserva Part.
+                                  <label className="flex items-center gap-1 text-[#9c99c4] mb-1 font-semibold">
+                                    <MapPin className="h-3.5 w-3.5 text-[#4ea8ff]" />
+                                    Local de atendimento
                                   </label>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={q.maxSlots}
-                                    value={q.privateReserveSlots}
+                                  <select
+                                    value={q.locationId ?? ""}
                                     onChange={(e) =>
                                       updateQuotaLocal(dow, s.key, {
-                                        privateReserveSlots: Math.max(
-                                          0,
-                                          Number(e.target.value)
-                                        ),
+                                        locationId: e.target.value || null,
                                       })
                                     }
-                                    className="w-full h-9 px-2.5 rounded-lg border border-[#5c4ab8] bg-[#13112d] text-white font-bold"
-                                  />
+                                    className="w-full h-9 px-2.5 rounded-lg border border-[#3a3675] bg-[#13112d] text-white text-xs font-medium"
+                                  >
+                                    <option value="">Padrão da clínica (não especificado)</option>
+                                    {activeLocations.map((loc) => (
+                                      <option key={loc.id} value={loc.id}>
+                                        {loc.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                {/* Convênios aceitos neste turno */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[#9c99c4] font-semibold">
+                                      Convênios atendidos
+                                    </span>
+                                    <span className="text-[10px] text-[#a792ff] font-bold">
+                                      {allInsurances
+                                        ? "Todos"
+                                        : `${q.allowedInsuranceIds.length} selecionado(s)`}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateQuotaLocal(dow, s.key, {
+                                          allowedInsuranceIds: [],
+                                        })
+                                      }
+                                      className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-all ${
+                                        allInsurances
+                                          ? "bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] text-white border-transparent"
+                                          : "bg-[#13112d] text-[#9c99c4] border-[#312d66] hover:border-[#8b6dff]"
+                                      }`}
+                                    >
+                                      Todos
+                                    </button>
+                                    {activeInsurances.map((ins) => {
+                                      const selected = q.allowedInsuranceIds.includes(
+                                        ins.id
+                                      );
+                                      return (
+                                        <button
+                                          key={ins.id}
+                                          type="button"
+                                          onClick={() =>
+                                            toggleWeeklyInsurance(dow, s.key, ins.id)
+                                          }
+                                          className={`px-2 py-1 rounded-md text-[11px] font-semibold border transition-all ${
+                                            selected
+                                              ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent shadow-sm"
+                                              : "bg-[#13112d] text-[#b4b1db] border-[#312d66] hover:border-[#8b6dff]"
+                                          }`}
+                                        >
+                                          {ins.name}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -704,8 +891,8 @@ export default function AdminSettingsPage() {
                   Clique em qualquer data no calendário
                 </p>
                 <p className="text-xs mt-1 text-[#9c99c4]">
-                  Bloqueie feriados, abra datas extras ou altere a quantidade de vagas
-                  individualmente.
+                  Bloqueie feriados, abra datas extras ou personalize local, convênios e
+                  vagas individualmente.
                 </p>
               </div>
             ) : (
@@ -760,14 +947,15 @@ export default function AdminSettingsPage() {
                 {!exIsBlocked && (
                   <div className="space-y-2.5">
                     <div className="text-xs font-bold text-[#a792ff] uppercase">
-                      Turnos e Vagas para esta data
+                      Turnos, Locais e Convênios para esta data
                     </div>
                     {SHIFTS.map((s) => {
                       const cfg = exShifts[s.key];
+                      const allIns = cfg.allowedInsuranceIds.length === 0;
                       return (
                         <div
                           key={s.key}
-                          className="rounded-xl border border-[#2e2a61] bg-[#141230] p-3 space-y-2"
+                          className="rounded-xl border border-[#2e2a61] bg-[#141230] p-3 space-y-2.5"
                         >
                           <label className="flex items-center gap-2 text-sm font-bold text-white cursor-pointer">
                             <input
@@ -784,51 +972,126 @@ export default function AdminSettingsPage() {
                             {s.label}
                           </label>
                           {cfg.enabled && (
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div>
-                                <label className="block text-[#9c99c4] mb-1">
-                                  Máx. vagas
-                                </label>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  max={200}
-                                  value={cfg.maxSlots}
-                                  onChange={(e) =>
-                                    setExShifts((prev) => ({
-                                      ...prev,
-                                      [s.key]: {
-                                        ...prev[s.key],
-                                        maxSlots: Math.max(0, Number(e.target.value)),
-                                      },
-                                    }))
-                                  }
-                                  className="w-full h-9 px-2.5 rounded-lg border border-[#3a3675] bg-[#1b183d] text-white font-bold"
-                                />
+                            <div className="space-y-2.5 text-xs">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[#9c99c4] mb-1">
+                                    Máx. vagas
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={200}
+                                    value={cfg.maxSlots}
+                                    onChange={(e) =>
+                                      setExShifts((prev) => ({
+                                        ...prev,
+                                        [s.key]: {
+                                          ...prev[s.key],
+                                          maxSlots: Math.max(0, Number(e.target.value)),
+                                        },
+                                      }))
+                                    }
+                                    className="w-full h-9 px-2.5 rounded-lg border border-[#3a3675] bg-[#1b183d] text-white font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[#b39eff] mb-1">
+                                    Reserva Part.
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={cfg.maxSlots}
+                                    value={cfg.privateReserveSlots}
+                                    onChange={(e) =>
+                                      setExShifts((prev) => ({
+                                        ...prev,
+                                        [s.key]: {
+                                          ...prev[s.key],
+                                          privateReserveSlots: Math.max(
+                                            0,
+                                            Number(e.target.value)
+                                          ),
+                                        },
+                                      }))
+                                    }
+                                    className="w-full h-9 px-2.5 rounded-lg border border-[#5c4ab8] bg-[#1b183d] text-white font-bold"
+                                  />
+                                </div>
                               </div>
+
                               <div>
-                                <label className="block text-[#b39eff] mb-1">
-                                  Reserva Part.
+                                <label className="flex items-center gap-1 text-[#9c99c4] mb-1 font-semibold">
+                                  <MapPin className="h-3.5 w-3.5 text-[#4ea8ff]" />
+                                  Local de atendimento
                                 </label>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  max={cfg.maxSlots}
-                                  value={cfg.privateReserveSlots}
+                                <select
+                                  value={cfg.locationId ?? ""}
                                   onChange={(e) =>
                                     setExShifts((prev) => ({
                                       ...prev,
                                       [s.key]: {
                                         ...prev[s.key],
-                                        privateReserveSlots: Math.max(
-                                          0,
-                                          Number(e.target.value)
-                                        ),
+                                        locationId: e.target.value || null,
                                       },
                                     }))
                                   }
-                                  className="w-full h-9 px-2.5 rounded-lg border border-[#5c4ab8] bg-[#1b183d] text-white font-bold"
-                                />
+                                  className="w-full h-9 px-2.5 rounded-lg border border-[#3a3675] bg-[#1b183d] text-white text-xs"
+                                >
+                                  <option value="">Padrão da clínica (não especificado)</option>
+                                  {activeLocations.map((loc) => (
+                                    <option key={loc.id} value={loc.id}>
+                                      {loc.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <span className="block text-[#9c99c4] font-semibold mb-1.5">
+                                  Convênios atendidos
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExShifts((prev) => ({
+                                        ...prev,
+                                        [s.key]: {
+                                          ...prev[s.key],
+                                          allowedInsuranceIds: [],
+                                        },
+                                      }))
+                                    }
+                                    className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-all ${
+                                      allIns
+                                        ? "bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] text-white border-transparent"
+                                        : "bg-[#1b183d] text-[#9c99c4] border-[#312d66]"
+                                    }`}
+                                  >
+                                    Todos
+                                  </button>
+                                  {activeInsurances.map((ins) => {
+                                    const selected = cfg.allowedInsuranceIds.includes(
+                                      ins.id
+                                    );
+                                    return (
+                                      <button
+                                        key={ins.id}
+                                        type="button"
+                                        onClick={() => toggleExInsurance(s.key, ins.id)}
+                                        className={`px-2 py-1 rounded-md text-[11px] font-semibold border transition-all ${
+                                          selected
+                                            ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent"
+                                            : "bg-[#1b183d] text-[#b4b1db] border-[#312d66]"
+                                        }`}
+                                      >
+                                        {ins.name}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </div>
                           )}
@@ -857,9 +1120,128 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
-      {/* ================= ABA 3: OPÇÕES FIXAS DO FORMULÁRIO ================= */}
+      {/* ================= ABA 3: LOCAIS E OPÇÕES FIXAS ================= */}
       {tab === "options" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Locais de Atendimento */}
+          <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 space-y-4 shadow-lg shadow-black/20">
+            <div>
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-[#4ea8ff]" />
+                Locais de Atendimento
+              </h3>
+              <p className="text-xs text-[#9c99c4]">
+                Ex: Hospital Porto Dias, Clínica Particular (com endereço opcional no
+                comprovante)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newName.location}
+                  onChange={(e) =>
+                    setNewName((p) => ({ ...p, location: e.target.value }))
+                  }
+                  placeholder="Nome do hospital ou clínica..."
+                  className="flex-1 h-9 px-3 rounded-lg border border-[#322e66] bg-[#13112d] text-white text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => createOption("location")}
+                  className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-xs font-bold flex items-center gap-1"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </button>
+              </div>
+              <input
+                type="text"
+                value={newLocationAddress}
+                onChange={(e) => setNewLocationAddress(e.target.value)}
+                placeholder="Endereço (opcional) — exibido no comprovante do paciente"
+                className="w-full h-9 px-3 rounded-lg border border-[#322e66] bg-[#13112d] text-white text-xs"
+              />
+            </div>
+
+            <div className="divide-y divide-[#282454]">
+              {locations.map((loc) => (
+                <div key={loc.id} className="py-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div
+                        className={`text-sm font-semibold ${
+                          loc.active ? "text-white" : "text-[#6f6c9e] line-through"
+                        }`}
+                      >
+                        {loc.name}
+                      </div>
+                      {editingLocId === loc.id ? (
+                        <div className="flex gap-1.5 mt-1">
+                          <input
+                            type="text"
+                            value={editingLocAddress}
+                            onChange={(e) => setEditingLocAddress(e.target.value)}
+                            placeholder="Endereço completo..."
+                            className="flex-1 h-8 px-2.5 rounded-md border border-[#453d91] bg-[#13112d] text-white text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              patchOption("location", loc.id, {
+                                address: editingLocAddress.trim() || null,
+                              })
+                            }
+                            className="h-8 px-2.5 rounded-md bg-[#6344ff] text-white text-[11px] font-bold"
+                          >
+                            Salvar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingLocId(loc.id);
+                            setEditingLocAddress(loc.address || "");
+                          }}
+                          className="text-[11px] text-[#9c99c4] hover:text-[#4ea8ff] text-left block mt-0.5"
+                        >
+                          {loc.address
+                            ? `${loc.address} (editar endereço)`
+                            : "+ Adicionar endereço"}
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          patchOption("location", loc.id, { active: !loc.active })
+                        }
+                        className={`text-[11px] font-bold px-2 py-1 rounded-md border ${
+                          loc.active
+                            ? "bg-emerald-400/15 text-emerald-300 border-emerald-400/35"
+                            : "bg-[#141230] text-[#8d8ab8] border-[#2e2a61]"
+                        }`}
+                      >
+                        {loc.active ? "Ativo" : "Inativo"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteOption("location", loc.id)}
+                        className="p-1.5 text-[#7d79ad] hover:text-rose-400"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Convênios */}
           <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 space-y-4 shadow-lg shadow-black/20">
             <div>

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "API Key inválida ou ausente" }, { status: 401 });
   }
 
-  const [insurances, visitTypes, kneeOptions] = await Promise.all([
+  const [insurances, visitTypes, kneeOptions, locations] = await Promise.all([
     prisma.insuranceOption.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -30,11 +30,17 @@ export async function GET(request: NextRequest) {
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, sortOrder: true },
     }),
+    prisma.locationOption.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, address: true, sortOrder: true },
+    }),
   ]);
 
   return NextResponse.json({
     insurances,
     visitTypes,
     kneeOptions,
+    locations,
   });
 }

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { addDaysISO, getTodayISO } from "@/lib/normalize";
 import { getAvailabilityRange } from "@/lib/availability";
@@ -7,11 +7,13 @@ export const dynamic = "force-dynamic";
 
 /**
  * Retorna configurações públicas da clínica, opções fixas ativas (SEM isPrivatePriority!)
- * e disponibilidade para a janela de agendamento configurada.
+ * e disponibilidade para a janela de agendamento configurada (opcionalmente filtrada por ?insuranceId=...).
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const [settings, insurances, visitTypes, kneeOptions] = await Promise.all([
+    const insuranceId = request.nextUrl.searchParams.get("insuranceId") || undefined;
+
+    const [settings, insurances, visitTypes, kneeOptions, locations] = await Promise.all([
       prisma.clinicSettings.findUnique({ where: { id: 1 } }),
       prisma.insuranceOption.findMany({
         where: { active: true },
@@ -29,6 +31,11 @@ export async function GET() {
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         select: { id: true, name: true, sortOrder: true },
       }),
+      prisma.locationOption.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { id: true, name: true, address: true, sortOrder: true },
+      }),
     ]);
 
     const clinicSettings = settings ?? {
@@ -45,6 +52,7 @@ export async function GET() {
     const availability = await getAvailabilityRange(today, endDate, {
       forPublicPortal: true,
       showRemainingSlots: clinicSettings.showRemainingSlots,
+      insuranceId,
     });
 
     return NextResponse.json({
@@ -58,6 +66,7 @@ export async function GET() {
         insurances,
         visitTypes,
         kneeOptions,
+        locations,
       },
       availability,
     });

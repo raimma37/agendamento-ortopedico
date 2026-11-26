@@ -6,6 +6,33 @@ import { formatDateISO, parseDateOnly } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
+function serializeException(ex: {
+  id: string;
+  date: Date;
+  shift: string;
+  maxSlots: number;
+  privateReserveSlots: number;
+  isBlocked: boolean;
+  reason: string | null;
+  locationId: string | null;
+  location: { id: string; name: string; address: string | null } | null;
+  allowedInsurances: Array<{ id: string; name: string }>;
+}) {
+  return {
+    id: ex.id,
+    date: formatDateISO(ex.date),
+    shift: ex.shift,
+    maxSlots: ex.maxSlots,
+    privateReserveSlots: ex.privateReserveSlots,
+    isBlocked: ex.isBlocked,
+    reason: ex.reason,
+    locationId: ex.locationId,
+    location: ex.location,
+    allowedInsuranceIds: ex.allowedInsurances.map((i) => i.id),
+    allowedInsurances: ex.allowedInsurances,
+  };
+}
+
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) {
@@ -25,14 +52,18 @@ export async function GET(request: NextRequest) {
 
   const exceptions = await prisma.dateException.findMany({
     where,
+    include: {
+      location: { select: { id: true, name: true, address: true } },
+      allowedInsurances: {
+        select: { id: true, name: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      },
+    },
     orderBy: [{ date: "asc" }, { shift: "asc" }],
   });
 
   return NextResponse.json({
-    exceptions: exceptions.map((ex) => ({
-      ...ex,
-      date: formatDateISO(ex.date),
-    })),
+    exceptions: exceptions.map(serializeException),
   });
 }
 
@@ -70,6 +101,7 @@ export async function POST(request: NextRequest) {
       });
     } else if (parsed.data.shifts && parsed.data.shifts.length > 0) {
       for (const s of parsed.data.shifts) {
+        const insuranceIds = Array.from(new Set(s.allowedInsuranceIds ?? []));
         await tx.dateException.create({
           data: {
             date: dateObj,
@@ -78,6 +110,11 @@ export async function POST(request: NextRequest) {
             privateReserveSlots: Math.min(s.privateReserveSlots, s.maxSlots),
             isBlocked: false,
             reason: parsed.data.reason || "Configuração personalizada",
+            locationId: s.locationId || null,
+            allowedInsurances:
+              insuranceIds.length > 0
+                ? { connect: insuranceIds.map((id) => ({ id })) }
+                : undefined,
           },
         });
       }
@@ -86,12 +123,19 @@ export async function POST(request: NextRequest) {
 
   const saved = await prisma.dateException.findMany({
     where: { date: dateObj },
+    include: {
+      location: { select: { id: true, name: true, address: true } },
+      allowedInsurances: {
+        select: { id: true, name: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      },
+    },
     orderBy: { shift: "asc" },
   });
 
   return NextResponse.json({
     ok: true,
-    exceptions: saved.map((e) => ({ ...e, date: formatDateISO(e.date) })),
+    exceptions: saved.map(serializeException),
   });
 }
 

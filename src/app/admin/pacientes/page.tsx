@@ -17,6 +17,7 @@ interface PatientItem {
     protocol: string;
     dateBR: string;
     shiftLabel: string;
+    location: string | null;
     insurance: string;
     visitType: string;
     kneeOption: string;
@@ -129,6 +130,7 @@ export default function AdminPatientsPage() {
                           <th className="py-2 pr-3">Protocolo</th>
                           <th className="py-2 pr-3">Data</th>
                           <th className="py-2 pr-3">Turno</th>
+                          <th className="py-2 pr-3">Local</th>
                           <th className="py-2 pr-3">Convênio</th>
                           <th className="py-2 pr-3">Tipo</th>
                           <th className="py-2 pr-3">Joelho</th>
@@ -143,6 +145,7 @@ export default function AdminPatientsPage() {
                             </td>
                             <td className="py-2 pr-3">{h.dateBR}</td>
                             <td className="py-2 pr-3">{h.shiftLabel}</td>
+                            <td className="py-2 pr-3 text-[#7dd3fc]">{h.location || "—"}</td>
                             <td className="py-2 pr-3">{h.insurance}</td>
                             <td className="py-2 pr-3">{h.visitType}</td>
                             <td className="py-2 pr-3">{h.kneeOption}</td>

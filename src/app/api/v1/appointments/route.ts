@@ -32,6 +32,7 @@ function serializeV1Appointment(apt: {
   insurance: { id: string; name: string };
   visitType: { id: string; name: string };
   kneeOption: { id: string; name: string };
+  location?: { id: string; name: string; address: string | null } | null;
 }) {
   const dateISO = formatDateISO(apt.date);
   return {
@@ -43,6 +44,9 @@ function serializeV1Appointment(apt: {
     dateBR: formatDateBR(dateISO),
     shift: apt.shift,
     shiftLabel: SHIFT_LABELS[apt.shift],
+    location: apt.location?.name ?? null,
+    locationAddress: apt.location?.address ?? null,
+    locationId: apt.location?.id ?? null,
     insurance: apt.insurance.name,
     insuranceId: apt.insurance.id,
     visitType: apt.visitType.name,
@@ -71,6 +75,7 @@ export async function GET(request: NextRequest) {
   const status = sp.get("status") as AppointmentStatus | null;
   const whatsapp = sp.get("whatsapp");
   const patientName = sp.get("patientName");
+  const locationId = sp.get("locationId");
 
   const where: Prisma.AppointmentWhereInput = {};
 
@@ -79,6 +84,9 @@ export async function GET(request: NextRequest) {
   }
   if (shift && ["MORNING", "AFTERNOON", "FULL_DAY"].includes(shift)) {
     where.shift = shift;
+  }
+  if (locationId) {
+    where.locationId = locationId;
   }
   if (
     status &&
@@ -102,6 +110,7 @@ export async function GET(request: NextRequest) {
       insurance: { select: { id: true, name: true } },
       visitType: { select: { id: true, name: true } },
       kneeOption: { select: { id: true, name: true } },
+      location: { select: { id: true, name: true, address: true } },
     },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
     take: 200,

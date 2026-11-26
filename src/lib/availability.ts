@@ -2,6 +2,12 @@ import type { Prisma, PrismaClient, Shift } from "@prisma/client";
 import { prisma } from "./prisma";
 import { addDaysISO, formatDateISO, parseDateOnly, SHIFT_LABELS } from "./normalize";
 
+export interface LocationSummary {
+  id: string;
+  name: string;
+  address: string | null;
+}
+
 export interface ResolvedShiftQuota {
   shift: Shift;
   maxSlots: number;
@@ -9,9 +15,21 @@ export interface ResolvedShiftQuota {
   source: "EXCEPTION" | "WEEKLY";
   isBlocked: boolean;
   reason: string | null;
+  location: LocationSummary | null;
+  allowedInsuranceIds: string[];
+  allowedInsurances: Array<{ id: string; name: string }>;
 }
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
+
+const quotaInclude = {
+  location: { select: { id: true, name: true, address: true } },
+  allowedInsurances: {
+    where: { active: true },
+    select: { id: true, name: true },
+    orderBy: [{ sortOrder: "asc" as const }, { name: "asc" as const }],
+  },
+};
 
 /**
  * Resolve as cotas efetivas de um dia específico.
@@ -24,6 +42,7 @@ export async function resolveDayQuotas(
   const dateObj = parseDateOnly(dateStr);
   const exceptions = await db.dateException.findMany({
     where: { date: dateObj },
+    include: quotaInclude,
   });
 
   if (exceptions.length > 0) {
@@ -42,12 +61,16 @@ export async function resolveDayQuotas(
         source: "EXCEPTION" as const,
         isBlocked: false,
         reason: e.reason,
+        location: e.location ?? null,
+        allowedInsuranceIds: e.allowedInsurances.map((i) => i.id),
+        allowedInsurances: e.allowedInsurances,
       }));
   }
 
   const dayOfWeek = dateObj.getUTCDay();
   const weekly = await db.weeklyQuota.findMany({
     where: { dayOfWeek, active: true, maxSlots: { gt: 0 } },
+    include: quotaInclude,
   });
 
   return weekly.map((w) => ({
@@ -57,6 +80,9 @@ export async function resolveDayQuotas(
     source: "WEEKLY" as const,
     isBlocked: false,
     reason: null,
+    location: w.location ?? null,
+    allowedInsuranceIds: w.allowedInsurances.map((i) => i.id),
+    allowedInsurances: w.allowedInsurances,
   }));
 }
 
@@ -70,6 +96,10 @@ export interface PublicShiftAvailability {
    * caso contrário null.
    */
   remainingSlots: number | null;
+  location: LocationSummary | null;
+  /** Array vazio = aceita todos os convênios ativos */
+  allowedInsuranceIds: string[];
+  allowedInsuranceNames: string[];
 }
 
 export interface PublicDayAvailability {
@@ -81,21 +111,27 @@ export interface PublicDayAvailability {
 export async function getAvailabilityRange(
   startDateStr: string,
   endDateStr: string,
-  options: { forPublicPortal?: boolean; showRemainingSlots?: boolean } = {}
+  options: {
+    forPublicPortal?: boolean;
+    showRemainingSlots?: boolean;
+    insuranceId?: string;
+  } = {}
 ): Promise<PublicDayAvailability[]> {
-  const { forPublicPortal = false, showRemainingSlots = true } = options;
+  const { forPublicPortal = false, showRemainingSlots = true, insuranceId } = options;
 
   const startObj = parseDateOnly(startDateStr);
   const endObj = parseDateOnly(endDateStr);
 
-  const [exceptions, weeklyQuotas, activeCounts] = await Promise.all([
+  const [exceptions, weeklyQuotas, activeCounts, selectedInsurance] = await Promise.all([
     prisma.dateException.findMany({
       where: {
         date: { gte: startObj, lte: endObj },
       },
+      include: quotaInclude,
     }),
     prisma.weeklyQuota.findMany({
       where: { active: true, maxSlots: { gt: 0 } },
+      include: quotaInclude,
     }),
     prisma.appointment.groupBy({
       by: ["date", "shift"],
@@ -105,6 +141,12 @@ export async function getAvailabilityRange(
       },
       _count: { _all: true },
     }),
+    insuranceId
+      ? prisma.insuranceOption.findFirst({
+          where: { id: insuranceId, active: true },
+          select: { id: true, isPrivatePriority: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const exceptionsByDate = new Map<string, typeof exceptions>();
@@ -147,6 +189,8 @@ export async function getAvailabilityRange(
       shift: Shift;
       maxSlots: number;
       privateReserveSlots: number;
+      location: LocationSummary | null;
+      allowedInsurances: Array<{ id: string; name: string }>;
     }> = [];
 
     if (dayExceptions && dayExceptions.length > 0) {
@@ -160,6 +204,8 @@ export async function getAvailabilityRange(
             shift: e.shift,
             maxSlots: e.maxSlots,
             privateReserveSlots: e.privateReserveSlots,
+            location: e.location ?? null,
+            allowedInsurances: e.allowedInsurances,
           }));
       }
     } else {
@@ -168,7 +214,22 @@ export async function getAvailabilityRange(
         shift: w.shift,
         maxSlots: w.maxSlots,
         privateReserveSlots: w.privateReserveSlots,
+        location: w.location ?? null,
+        allowedInsurances: w.allowedInsurances,
       }));
+    }
+
+    // Se um convênio específico foi informado, filtra turnos que o aceitam
+    if (insuranceId) {
+      if (!selectedInsurance) {
+        effectiveQuotas = [];
+      } else {
+        effectiveQuotas = effectiveQuotas.filter(
+          (q) =>
+            q.allowedInsurances.length === 0 ||
+            q.allowedInsurances.some((i) => i.id === selectedInsurance.id)
+        );
+      }
     }
 
     effectiveQuotas.sort((a, b) => shiftOrder[a.shift] - shiftOrder[b.shift]);
@@ -179,10 +240,18 @@ export async function getAvailabilityRange(
       const publicRemaining = Math.max(0, publicMax - booked);
       const totalRemaining = Math.max(0, q.maxSlots - booked);
 
-      // No portal público (Passo 1 antes da escolha do convênio), mantemos o turno selecionável
-      // enquanto houver qualquer vaga (inclusive reserva silenciosa para Particular).
-      // Na API /v1/availability, exibimos apenas vagas públicas abertas.
-      const isAvailable = forPublicPortal ? totalRemaining > 0 : publicRemaining > 0;
+      // Quando insuranceId é filtrado:
+      // - Particular (isPrivatePriority=true) vê disponibilidade considerando reserva silenciosa
+      // - Demais convênios veem apenas vagas públicas abertas
+      // Sem insuranceId: portal público mantém selecionável se houver qualquer vaga; API v1 mostra apenas públicas.
+      let isAvailable: boolean;
+      if (selectedInsurance) {
+        isAvailable = selectedInsurance.isPrivatePriority
+          ? totalRemaining > 0
+          : publicRemaining > 0;
+      } else {
+        isAvailable = forPublicPortal ? totalRemaining > 0 : publicRemaining > 0;
+      }
 
       let remainingSlots: number | null = null;
       if (showRemainingSlots) {
@@ -198,6 +267,9 @@ export async function getAvailabilityRange(
         shiftLabel: SHIFT_LABELS[q.shift],
         available: isAvailable,
         remainingSlots,
+        location: q.location,
+        allowedInsuranceIds: q.allowedInsurances.map((i) => i.id),
+        allowedInsuranceNames: q.allowedInsurances.map((i) => i.name),
       };
     });
 

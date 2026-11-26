@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  Building2,
   Calendar as CalendarIcon,
   CheckCircle2,
   ChevronLeft,
@@ -14,6 +15,7 @@ import {
   Info,
   Loader2,
   Lock,
+  MapPin,
   MessageCircle,
   ShieldCheck,
   Stethoscope,
@@ -23,11 +25,20 @@ import {
 } from "lucide-react";
 import { formatDateBR, maskBrazilianPhone } from "@/lib/normalize";
 
+interface LocationInfo {
+  id: string;
+  name: string;
+  address: string | null;
+}
+
 interface ShiftAvailability {
   shift: "MORNING" | "AFTERNOON" | "FULL_DAY";
   shiftLabel: string;
   available: boolean;
   remainingSlots: number | null;
+  location: LocationInfo | null;
+  allowedInsuranceIds: string[];
+  allowedInsuranceNames: string[];
 }
 
 interface DayAvailability {
@@ -53,6 +64,7 @@ interface BootstrapData {
     insurances: FixedOption[];
     visitTypes: FixedOption[];
     kneeOptions: FixedOption[];
+    locations: Array<LocationInfo & { sortOrder: number }>;
   };
   availability: DayAvailability[];
 }
@@ -67,6 +79,8 @@ interface BookedAppointment {
   dateBR: string;
   shift: "MORNING" | "AFTERNOON" | "FULL_DAY";
   shiftLabel: string;
+  location: string | null;
+  locationAddress: string | null;
   insurance: string;
   visitType: string;
   kneeOption: string;
@@ -101,10 +115,12 @@ function getWeekdayLabel(dateStr: string): string {
 
 export default function PublicBookingFlow() {
   const [loading, setLoading] = useState(true);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [data, setData] = useState<BootstrapData | null>(null);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [insuranceId, setInsuranceId] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedShift, setSelectedShift] = useState<
     "MORNING" | "AFTERNOON" | "FULL_DAY" | ""
@@ -119,7 +135,6 @@ export default function PublicBookingFlow() {
 
   const [patientName, setPatientName] = useState("");
   const [whatsappInput, setWhatsappInput] = useState("");
-  const [insuranceId, setInsuranceId] = useState("");
   const [visitTypeId, setVisitTypeId] = useState("");
   const [kneeOptionId, setKneeOptionId] = useState("");
   const [lgpdAccepted, setLgpdAccepted] = useState(false);
@@ -133,11 +148,18 @@ export default function PublicBookingFlow() {
     appointment: BookedAppointment;
   } | null>(null);
 
-  async function fetchBootstrap() {
-    setLoading(true);
+  async function fetchBootstrap(filterInsuranceId?: string, initial = false) {
+    if (initial) {
+      setLoading(true);
+    } else {
+      setLoadingAvailability(true);
+    }
     setLoadError(null);
     try {
-      const res = await fetch("/api/public/bootstrap", { cache: "no-store" });
+      const qs = filterInsuranceId
+        ? `?insuranceId=${encodeURIComponent(filterInsuranceId)}`
+        : "";
+      const res = await fetch(`/api/public/bootstrap${qs}`, { cache: "no-store" });
       if (!res.ok) throw new Error("Falha ao carregar agenda disponível.");
       const json: BootstrapData = await res.json();
       setData(json);
@@ -153,12 +175,18 @@ export default function PublicBookingFlow() {
       );
     } finally {
       setLoading(false);
+      setLoadingAvailability(false);
     }
   }
 
   useEffect(() => {
-    void fetchBootstrap();
+    void fetchBootstrap(undefined, true);
   }, []);
+
+  const selectedInsuranceObj = useMemo(() => {
+    if (!data || !insuranceId) return null;
+    return data.options.insurances.find((i) => i.id === insuranceId) ?? null;
+  }, [data, insuranceId]);
 
   const availabilityMap = useMemo(() => {
     const map = new Map<string, DayAvailability>();
@@ -174,6 +202,10 @@ export default function PublicBookingFlow() {
   }, [data]);
 
   const selectedDayInfo = selectedDate ? availabilityMap.get(selectedDate) : undefined;
+  const selectedShiftInfo = useMemo(() => {
+    if (!selectedDayInfo || !selectedShift) return null;
+    return selectedDayInfo.shifts.find((s) => s.shift === selectedShift) ?? null;
+  }, [selectedDayInfo, selectedShift]);
 
   const calendarCells = useMemo(() => {
     const { year, month } = calendarMonth;
@@ -190,6 +222,14 @@ export default function PublicBookingFlow() {
     }
     return cells;
   }, [calendarMonth]);
+
+  function handleSelectInsurance(nextInsId: string) {
+    setInsuranceId(nextInsId);
+    setSelectedDate("");
+    setSelectedShift("");
+    setSubmitError(null);
+    void fetchBootstrap(nextInsId, false);
+  }
 
   function handleSelectDate(dateStr: string) {
     setSelectedDate(dateStr);
@@ -269,7 +309,7 @@ export default function PublicBookingFlow() {
       const json = await res.json();
       if (!res.ok) {
         setSubmitError(json.error || "Não foi possível concluir o agendamento.");
-        if (res.status === 409) void fetchBootstrap();
+        if (res.status === 409) void fetchBootstrap(insuranceId, false);
         return;
       }
 
@@ -289,17 +329,17 @@ export default function PublicBookingFlow() {
 
   function resetBooking() {
     setStep(1);
+    setInsuranceId("");
     setSelectedDate("");
     setSelectedShift("");
     setPatientName("");
     setWhatsappInput("");
-    setInsuranceId("");
     setVisitTypeId("");
     setKneeOptionId("");
     setLgpdAccepted(false);
     setSubmitError(null);
     setResult(null);
-    void fetchBootstrap();
+    void fetchBootstrap(undefined, false);
   }
 
   if (loading) {
@@ -307,7 +347,7 @@ export default function PublicBookingFlow() {
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#12102b]">
         <Loader2 className="h-9 w-9 animate-spin text-[#8b6dff] mb-3" />
         <p className="text-[#c7c4eb] font-medium text-base">
-          Carregando datas disponíveis...
+          Carregando agenda disponível...
         </p>
       </div>
     );
@@ -325,7 +365,7 @@ export default function PublicBookingFlow() {
         </p>
         <button
           type="button"
-          onClick={fetchBootstrap}
+          onClick={() => void fetchBootstrap(insuranceId || undefined, true)}
           className="min-h-[48px] px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold shadow-lg shadow-violet-600/30"
         >
           Tentar novamente
@@ -370,7 +410,7 @@ export default function PublicBookingFlow() {
           <div className="flex items-center justify-between text-xs font-semibold text-[#9c99c4] mb-1.5">
             <span>Passo {step} de 3</span>
             <span className="text-[#b39eff]">
-              {step === 1 && "Data e Turno"}
+              {step === 1 && "Convênio, Data e Local"}
               {step === 2 && "Dados do Paciente"}
               {step === 3 && "Comprovante"}
             </span>
@@ -392,7 +432,7 @@ export default function PublicBookingFlow() {
 
       {/* Conteúdo Principal */}
       <main className="relative z-10 flex-1 max-w-xl w-full mx-auto px-4 pt-5 pb-28 sm:pb-10">
-        {/* ================= PASSO 1: DATA E TURNO ================= */}
+        {/* ================= PASSO 1: CONVÊNIO, DATA E TURNO ================= */}
         {step === 1 && (
           <div className="space-y-5">
             {/* Aviso de Ordem de Chegada */}
@@ -403,21 +443,73 @@ export default function PublicBookingFlow() {
               <div className="text-sm leading-snug">
                 <p className="font-bold text-white">Atendimento por ordem de chegada</p>
                 <p className="text-[#b5b2db] text-xs mt-0.5">
-                  Não há horário marcado. Escolha o dia e o turno desejados para
-                  garantir sua vaga.
+                  Selecione seu convênio ou Particular abaixo para ver os dias, turnos e
+                  locais de atendimento disponíveis.
                 </p>
               </div>
             </div>
 
-            {availableDaysList.length === 0 ? (
+            {/* 1. Seleção de Convênio / Particular (Zero indicação de prioridade) */}
+            <section className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 shadow-xl shadow-black/25 space-y-3">
+              <div>
+                <h2 className="text-sm font-bold text-white">
+                  1. Selecione seu convênio ou Particular *
+                </h2>
+                <p className="text-xs text-[#9c99c4] mt-0.5">
+                  A agenda e os locais de atendimento serão exibidos conforme sua opção.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {data.options.insurances.map((opt) => {
+                  const active = insuranceId === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleSelectInsurance(opt.id)}
+                      className={`min-h-[48px] px-3 py-2.5 rounded-xl border-2 text-sm font-bold transition-all text-center ${
+                        active
+                          ? "border-[#957bff] bg-gradient-to-br from-[#8f71ff] to-[#6344ff] text-white shadow-lg shadow-violet-600/30"
+                          : "border-[#2e2a61] bg-[#141230] text-[#d5d3f5] hover:border-[#6344ff]"
+                      }`}
+                    >
+                      {opt.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* 2. Datas e Turnos filtrados pelo Convênio escolhido */}
+            {!insuranceId ? (
+              <div className="rounded-2xl bg-[#1b183d]/70 border border-dashed border-[#363173] p-6 text-center">
+                <CalendarIcon className="h-8 w-8 text-[#7c78a8] mx-auto mb-2" />
+                <p className="text-sm font-semibold text-[#c7c4eb]">
+                  Escolha um convênio acima para carregar o calendário
+                </p>
+                <p className="text-xs text-[#8d8ab8] mt-1">
+                  Cada dia e turno pode atender em um local e convênio específico.
+                </p>
+              </div>
+            ) : loadingAvailability ? (
+              <div className="rounded-2xl bg-[#1b183d] border border-[#2d295e] p-8 text-center">
+                <Loader2 className="h-7 w-7 animate-spin text-[#8b6dff] mx-auto mb-2" />
+                <p className="text-sm font-medium text-[#c7c4eb]">
+                  Buscando datas disponíveis para{" "}
+                  <strong className="text-white">{selectedInsuranceObj?.name}</strong>...
+                </p>
+              </div>
+            ) : availableDaysList.length === 0 ? (
               <div className="rounded-2xl bg-[#1b183d] border border-[#2d295e] p-6 text-center">
                 <CalendarIcon className="h-9 w-9 text-[#7c78a8] mx-auto mb-2" />
                 <h2 className="font-bold text-white">
-                  Sem vagas disponíveis no momento
+                  Sem vagas disponíveis para {selectedInsuranceObj?.name}
                 </h2>
                 <p className="text-sm text-[#9c99c4] mt-1">
-                  Todas as vagas para os próximos {data.settings.bookingWindowDays}{" "}
-                  dias foram preenchidas. Tente novamente mais tarde.
+                  Não há datas abertas para este convênio nos próximos{" "}
+                  {data.settings.bookingWindowDays} dias. Tente novamente mais tarde ou
+                  selecione outra opção.
                 </p>
               </div>
             ) : (
@@ -425,18 +517,33 @@ export default function PublicBookingFlow() {
                 {/* Atalho rápido: Próximas datas */}
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-[#8d8ab8] mb-2">
-                    Próximas datas disponíveis
+                    2. Próximas datas para {selectedInsuranceObj?.name}
                   </p>
                   <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                     {availableDaysList.slice(0, 6).map((d) => {
                       const active = selectedDate === d.date;
                       const [, m, day] = d.date.split("-");
+                      const openShifts = d.shifts.filter((s) => s.available);
+                      const locNames = Array.from(
+                        new Set(
+                          openShifts
+                            .map((s) => s.location?.name)
+                            .filter((n): n is string => Boolean(n))
+                        )
+                      );
+                      const locBadge =
+                        locNames.length === 1
+                          ? locNames[0]
+                          : locNames.length > 1
+                          ? `${locNames.length} locais`
+                          : null;
+
                       return (
                         <button
                           key={d.date}
                           type="button"
                           onClick={() => handleSelectDate(d.date)}
-                          className={`min-h-[58px] min-w-[78px] px-3 py-2 rounded-2xl border text-center shrink-0 transition-all ${
+                          className={`min-h-[64px] min-w-[92px] max-w-[140px] px-3 py-2 rounded-2xl border text-center shrink-0 transition-all ${
                             active
                               ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] border-transparent text-white shadow-lg shadow-violet-600/35"
                               : "bg-[#1b183d] border-[#2f2b63] text-[#e3e1fa] hover:border-[#8b6dff]"
@@ -452,6 +559,15 @@ export default function PublicBookingFlow() {
                           <div className="text-sm font-extrabold">
                             {day}/{m}
                           </div>
+                          {locBadge && (
+                            <div
+                              className={`text-[10px] truncate mt-0.5 font-medium ${
+                                active ? "text-violet-100" : "text-[#7dd3fc]"
+                              }`}
+                            >
+                              {locBadge}
+                            </div>
+                          )}
                         </button>
                       );
                     })}
@@ -526,11 +642,11 @@ export default function PublicBookingFlow() {
                   </div>
                 </section>
 
-                {/* Seleção de Turno */}
+                {/* Seleção de Turno + Local */}
                 {selectedDate && selectedDayInfo && (
                   <section className="space-y-2.5">
                     <h3 className="text-sm font-bold text-white">
-                      Escolha o turno para {formatDateBR(selectedDate)} (
+                      3. Escolha o turno para {formatDateBR(selectedDate)} (
                       {getWeekdayLabel(selectedDate)})
                     </h3>
                     <div className="grid grid-cols-1 gap-2.5">
@@ -549,15 +665,15 @@ export default function PublicBookingFlow() {
                               key={s.shift}
                               type="button"
                               onClick={() => setSelectedShift(s.shift)}
-                              className={`min-h-[66px] w-full px-4 py-3.5 rounded-2xl border-2 text-left flex items-center justify-between gap-3 transition-all ${
+                              className={`min-h-[72px] w-full px-4 py-3.5 rounded-2xl border-2 text-left flex items-center justify-between gap-3 transition-all ${
                                 isSelected
                                   ? "border-[#957bff] bg-gradient-to-r from-[#2c2569] to-[#232059] shadow-lg shadow-violet-700/25"
                                   : "border-[#2e2a61] bg-[#1b183d] hover:border-[#6344ff]"
                               }`}
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-start gap-3 min-w-0">
                                 <div
-                                  className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${
+                                  className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                                     isSelected
                                       ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] text-white shadow-md"
                                       : "bg-[#141230] text-[#a792ff] border border-[#2f2b63]"
@@ -565,13 +681,29 @@ export default function PublicBookingFlow() {
                                 >
                                   <Icon className="h-5 w-5" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                   <div className="font-bold text-white text-base">
-                                    Turno da {s.shiftLabel}
+                                    {s.shift === "FULL_DAY"
+                                      ? s.shiftLabel
+                                      : `Turno da ${s.shiftLabel}`}
                                   </div>
-                                  <div className="text-xs text-[#9c99c4]">
-                                    Atendimento por ordem de chegada
-                                  </div>
+                                  {s.location ? (
+                                    <div className="mt-1 space-y-0.5">
+                                      <div className="text-xs font-bold text-[#7dd3fc] flex items-center gap-1">
+                                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="truncate">{s.location.name}</span>
+                                      </div>
+                                      {s.location.address && (
+                                        <div className="text-[11px] text-[#9c99c4] truncate">
+                                          {s.location.address}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-[#9c99c4] mt-0.5">
+                                      Atendimento por ordem de chegada
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
@@ -604,7 +736,7 @@ export default function PublicBookingFlow() {
               <div className="max-w-xl mx-auto">
                 <button
                   type="button"
-                  disabled={!selectedDate || !selectedShift}
+                  disabled={!insuranceId || !selectedDate || !selectedShift}
                   onClick={() => {
                     setStep(2);
                     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -623,25 +755,38 @@ export default function PublicBookingFlow() {
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Resumo da escolha do Passo 1 */}
-            <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-3.5 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <CalendarIcon className="h-5 w-5 text-[#957bff] shrink-0" />
-                <div className="text-sm">
+            <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 flex items-start justify-between gap-3">
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2 text-sm">
+                  <CalendarIcon className="h-4 w-4 text-[#957bff] shrink-0" />
                   <span className="font-bold text-white">
-                    {formatDateBR(selectedDate)}
+                    {formatDateBR(selectedDate)} ({getWeekdayLabel(selectedDate)})
                   </span>
                   <span className="text-[#9c99c4]">
-                    {" "}
-                    •{" "}
-                    {selectedDayInfo?.shifts.find((s) => s.shift === selectedShift)
-                      ?.shiftLabel || selectedShift}
+                    • {selectedShiftInfo?.shiftLabel || selectedShift}
                   </span>
                 </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#252154] text-[#d5d3f5] font-semibold border border-[#3a3578]">
+                    {selectedInsuranceObj?.name}
+                  </span>
+                  {selectedShiftInfo?.location && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#4ea8ff]/15 text-[#7dd3fc] font-semibold border border-[#4ea8ff]/35">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {selectedShiftInfo.location.name}
+                    </span>
+                  )}
+                </div>
+                {selectedShiftInfo?.location?.address && (
+                  <p className="text-[11px] text-[#9c99c4]">
+                    {selectedShiftInfo.location.address}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-xs font-bold text-[#a792ff] hover:text-white px-2.5 py-1 rounded-lg bg-[#252154]"
+                className="text-xs font-bold text-[#a792ff] hover:text-white px-2.5 py-1 rounded-lg bg-[#252154] shrink-0"
               >
                 Alterar
               </button>
@@ -697,30 +842,6 @@ export default function PublicBookingFlow() {
                 <p className="text-xs text-[#9c99c4] mt-1">
                   Enviaremos o lembrete e a confirmação da consulta por este número.
                 </p>
-              </div>
-
-              {/* Convênio / Particular (Zero indicação de prioridade) */}
-              <div>
-                <label
-                  htmlFor="insuranceId"
-                  className="block text-sm font-bold text-white mb-1.5"
-                >
-                  Convênio ou Particular *
-                </label>
-                <select
-                  id="insuranceId"
-                  required
-                  value={insuranceId}
-                  onChange={(e) => setInsuranceId(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-[#343069] bg-[#13112d] text-white text-base focus:outline-none focus:ring-2 focus:ring-[#8b6dff] focus:border-[#8b6dff]"
-                >
-                  <option value="">Selecione uma opção...</option>
-                  {data.options.insurances.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {/* Tipo de Consulta */}
@@ -883,6 +1004,25 @@ export default function PublicBookingFlow() {
                     </div>
                   </div>
                 </div>
+
+                {result.appointment.location && (
+                  <div className="rounded-xl bg-[#4ea8ff]/10 border border-[#4ea8ff]/35 p-3.5 flex items-start gap-2.5">
+                    <Building2 className="h-5 w-5 text-[#7dd3fc] shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="text-[11px] uppercase tracking-wider font-semibold text-[#7dd3fc]">
+                        Local de Atendimento
+                      </div>
+                      <div className="font-bold text-white text-base leading-snug">
+                        {result.appointment.location}
+                      </div>
+                      {result.appointment.locationAddress && (
+                        <div className="text-xs text-[#c7c4eb] mt-0.5">
+                          {result.appointment.locationAddress}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2.5 pb-3 border-b border-[#2b275c]">
                   <div className="flex justify-between gap-2">

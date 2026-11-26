@@ -94,6 +94,7 @@ async function executeAtomicBooking(
               insurance: { select: { id: true, name: true } },
               visitType: { select: { id: true, name: true } },
               kneeOption: { select: { id: true, name: true } },
+              location: { select: { id: true, name: true, address: true } },
             },
           });
 
@@ -134,6 +135,17 @@ async function executeAtomicBooking(
             return {
               outcome: "FULL",
               error: "Não há vagas disponíveis para a data e turno selecionados.",
+            };
+          }
+
+          // 3b. Validar se o convênio selecionado é permitido nesta data/turno
+          if (
+            shiftQuota.allowedInsuranceIds.length > 0 &&
+            !shiftQuota.allowedInsuranceIds.includes(insurance.id)
+          ) {
+            return {
+              outcome: "INVALID",
+              error: "Este convênio não é atendido na data e turno selecionados.",
             };
           }
 
@@ -182,6 +194,7 @@ async function executeAtomicBooking(
               insuranceId: insurance.id,
               visitTypeId: visitType.id,
               kneeOptionId: kneeOption.id,
+              locationId: shiftQuota.location?.id ?? null,
               status: "PENDING",
               lgpdAccepted: input.lgpdAccepted,
             },
@@ -189,6 +202,7 @@ async function executeAtomicBooking(
               insurance: { select: { id: true, name: true } },
               visitType: { select: { id: true, name: true } },
               kneeOption: { select: { id: true, name: true } },
+              location: { select: { id: true, name: true, address: true } },
             },
           });
 

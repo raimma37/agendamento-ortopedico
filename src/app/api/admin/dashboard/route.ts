@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
   const insuranceId = sp.get("insuranceId");
   const visitTypeId = sp.get("visitTypeId");
   const kneeOptionId = sp.get("kneeOptionId");
+  const locationId = sp.get("locationId");
   const status = sp.get("status") as AppointmentStatus | null;
   const search = sp.get("search")?.trim();
 
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
   if (insuranceId) where.insuranceId = insuranceId;
   if (visitTypeId) where.visitTypeId = visitTypeId;
   if (kneeOptionId) where.kneeOptionId = kneeOptionId;
+  if (locationId) where.locationId = locationId;
   if (
     status &&
     ["PENDING", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELED", "NO_SHOW"].includes(
@@ -82,14 +84,16 @@ export async function GET(request: NextRequest) {
       insurance: { select: { id: true, name: true, isPrivatePriority: true } },
       visitType: { select: { id: true, name: true } },
       kneeOption: { select: { id: true, name: true } },
+      location: { select: { id: true, name: true, address: true } },
     },
     orderBy: [{ checkedInAt: "asc" }, { createdAt: "asc" }],
   });
 
-  const [insurances, visitTypes, kneeOptions] = await Promise.all([
+  const [insurances, visitTypes, kneeOptions, locations] = await Promise.all([
     prisma.insuranceOption.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     prisma.visitTypeOption.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     prisma.kneeOption.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+    prisma.locationOption.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
   ]);
 
   return NextResponse.json({
@@ -125,6 +129,7 @@ export async function GET(request: NextRequest) {
       insurance: apt.insurance,
       visitType: apt.visitType,
       kneeOption: apt.kneeOption,
+      location: apt.location ?? null,
       status: apt.status,
       statusLabel: STATUS_LABELS[apt.status],
       confirmedAt: apt.confirmedAt?.toISOString() ?? null,
@@ -139,6 +144,7 @@ export async function GET(request: NextRequest) {
       insurances,
       visitTypes,
       kneeOptions,
+      locations,
     },
   });
 }

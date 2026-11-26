@@ -1,5 +1,11 @@
 import crypto from "node:crypto";
-import type { Appointment, InsuranceOption, KneeOption, VisitTypeOption } from "@prisma/client";
+import type {
+  Appointment,
+  InsuranceOption,
+  KneeOption,
+  LocationOption,
+  VisitTypeOption,
+} from "@prisma/client";
 import { prisma } from "./prisma";
 import { formatDateISO, SHIFT_LABELS, STATUS_LABELS } from "./normalize";
 
@@ -12,6 +18,7 @@ export type AppointmentWithRelations = Appointment & {
   insurance: Pick<InsuranceOption, "id" | "name">;
   visitType: Pick<VisitTypeOption, "id" | "name">;
   kneeOption: Pick<KneeOption, "id" | "name">;
+  location?: Pick<LocationOption, "id" | "name" | "address"> | null;
 };
 
 export function buildWebhookPayload(
@@ -29,6 +36,8 @@ export function buildWebhookPayload(
       date: formatDateISO(appointment.date),
       shift: appointment.shift,
       shiftLabel: SHIFT_LABELS[appointment.shift],
+      location: appointment.location?.name ?? null,
+      locationAddress: appointment.location?.address ?? null,
       insurance: appointment.insurance.name,
       visitType: appointment.visitType.name,
       kneeOption: appointment.kneeOption.name,

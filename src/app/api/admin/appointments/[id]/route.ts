@@ -58,6 +58,7 @@ export async function PATCH(
       insurance: { select: { id: true, name: true } },
       visitType: { select: { id: true, name: true } },
       kneeOption: { select: { id: true, name: true } },
+      location: { select: { id: true, name: true, address: true } },
     },
   });
 

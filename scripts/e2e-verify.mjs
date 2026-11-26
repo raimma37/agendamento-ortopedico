@@ -114,8 +114,27 @@ async function run() {
   assert.equal(whCreateRes.status, 201);
   const { webhook: createdWebhook } = await whCreateRes.json();
 
+  // Helper para limpar agendamentos ativos de uma data de teste (torna o E2E idempotente)
+  async function clearTestDateAppointments(dateStr) {
+    const listRes = await fetch(`${BASE}/api/v1/appointments?date=${dateStr}`, {
+      headers: { "x-api-key": rawKey },
+    });
+    if (!listRes.ok) return;
+    const listJson = await listRes.json();
+    for (const apt of listJson.appointments || []) {
+      if (apt.status !== "CANCELED") {
+        await fetch(`${BASE}/api/v1/appointments/${apt.id}/cancel`, {
+          method: "PATCH",
+          headers: { "x-api-key": rawKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "Limpeza automática E2E" }),
+        });
+      }
+    }
+  }
+
   // 5. Configurar Data Individual (DateException) com exatamente 2 vagas na Manhã
   const testDate1 = nextDateISO(5);
+  await clearTestDateAppointments(testDate1);
   const exRes1 = await fetch(`${BASE}/api/admin/date-exceptions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
@@ -221,6 +240,7 @@ async function run() {
 
   // 9. Testar Reserva Silenciosa para Particular (maxSlots: 2, privateReserveSlots: 1)
   const testDate2 = nextDateISO(6);
+  await clearTestDateAppointments(testDate2);
   await fetch(`${BASE}/api/admin/date-exceptions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
@@ -366,7 +386,111 @@ async function run() {
   assert.equal(docsJson.openapi, "3.0.3");
   console.log("✔ 11. Relatórios (JSON + CSV), Templates n8n (.json) e OpenAPI (/api/docs) OK");
 
-  // Limpeza do webhook temporário e encerramento do mock server
+  // 13. Validar Locais de Atendimento e Restrição de Convênios por Dia/Turno
+  const optsRes = await fetch(`${BASE}/api/admin/form-options`, {
+    headers: { Cookie: cookie },
+  });
+  assert.equal(optsRes.status, 200);
+  const optsJson = await optsRes.json();
+  const portoDias = optsJson.locations.find((l) =>
+    l.name.toLowerCase().includes("porto dias")
+  );
+  const unimedOpt = optsJson.insurances.find((i) =>
+    i.name.toLowerCase().includes("unimed")
+  );
+  const amilOpt = optsJson.insurances.find((i) =>
+    i.name.toLowerCase().includes("amil")
+  );
+  assert.ok(portoDias && unimedOpt && amilOpt, "Local Porto Dias, Unimed e Amil devem existir");
+
+  const testDate3 = nextDateISO(7);
+  await clearTestDateAppointments(testDate3);
+  const exRes3 = await fetch(`${BASE}/api/admin/date-exceptions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify({
+      date: testDate3,
+      isBlocked: false,
+      reason: "Somente Unimed no Hospital Porto Dias",
+      shifts: [
+        {
+          shift: "MORNING",
+          maxSlots: 3,
+          privateReserveSlots: 0,
+          locationId: portoDias.id,
+          allowedInsuranceIds: [unimedOpt.id],
+        },
+      ],
+    }),
+  });
+  assert.equal(exRes3.status, 200);
+
+  // Bootstrap filtrado por Unimed deve mostrar testDate3 com Hospital Porto Dias
+  const bootUnimedRes = await fetch(
+    `${BASE}/api/public/bootstrap?insuranceId=${unimedOpt.id}`
+  );
+  assert.equal(bootUnimedRes.status, 200);
+  const bootUnimed = await bootUnimedRes.json();
+  const dayUnimed = bootUnimed.availability.find((d) => d.date === testDate3);
+  assert.ok(dayUnimed && dayUnimed.available, "Data deve aparecer disponível para Unimed");
+  assert.equal(dayUnimed.shifts[0].location?.name, portoDias.name);
+
+  // Bootstrap filtrado por Amil NÃO deve disponibilizar testDate3
+  const bootAmilRes = await fetch(
+    `${BASE}/api/public/bootstrap?insuranceId=${amilOpt.id}`
+  );
+  assert.equal(bootAmilRes.status, 200);
+  const bootAmil = await bootAmilRes.json();
+  const dayAmil = bootAmil.availability.find((d) => d.date === testDate3);
+  assert.equal(dayAmil?.available, false, "Data exclusiva Unimed NÃO deve ficar disponível para Amil");
+
+  // Tentativa direta de agendar Amil na data exclusiva de Unimed deve retornar 400
+  const blockedAmilBook = await fetch(`${BASE}/api/public/appointments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      patientName: "Paciente Amil Bloqueado",
+      whatsapp: "(91) 99444-1111",
+      date: testDate3,
+      shift: "MORNING",
+      insuranceId: amilOpt.id,
+      visitTypeId: visitTypeOpt.id,
+      kneeOptionId: kneeOpt.id,
+      lgpdAccepted: true,
+    }),
+  });
+  assert.equal(blockedAmilBook.status, 400, "Convênio não permitido no turno deve retornar 400");
+
+  // Agendamento com Unimed deve suceder e registrar o Local de Atendimento
+  const okUnimedBook = await fetch(`${BASE}/api/public/appointments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      patientName: "Paciente Unimed Porto Dias",
+      whatsapp: "(91) 99444-2222",
+      date: testDate3,
+      shift: "MORNING",
+      insuranceId: unimedOpt.id,
+      visitTypeId: visitTypeOpt.id,
+      kneeOptionId: kneeOpt.id,
+      lgpdAccepted: true,
+    }),
+  });
+  assert.equal(okUnimedBook.status, 201);
+  const okUnimedJson = await okUnimedBook.json();
+  assert.equal(okUnimedJson.appointment.location, portoDias.name);
+  console.log(
+    `✔ 12. Personalização por Local + Convênio validada (${portoDias.name} exclusivo Unimed OK)`
+  );
+
+  // Limpeza das datas/webhook temporários e encerramento do mock server
+  for (const d of [testDate1, testDate2, testDate3]) {
+    await clearTestDateAppointments(d);
+    await fetch(`${BASE}/api/admin/date-exceptions?date=${d}`, {
+      method: "DELETE",
+      headers: { Cookie: cookie },
+    });
+  }
   await fetch(`${BASE}/api/admin/webhooks?id=${createdWebhook.id}`, {
     method: "DELETE",
     headers: { Cookie: cookie },
@@ -377,7 +501,7 @@ async function run() {
   });
   whServer.close();
 
-  console.log("\n=== TODOS OS 11 TESTES E2E PASSARAM COM SUCESSO! ===");
+  console.log("\n=== TODOS OS 12 TESTES E2E PASSARAM COM SUCESSO! ===");
 }
 
 run().catch((err) => {

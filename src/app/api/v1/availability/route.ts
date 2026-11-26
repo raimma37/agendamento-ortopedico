@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const startDate = sp.get("startDate") || getTodayISO();
   const endDate = sp.get("endDate") || addDaysISO(startDate, 14);
+  const insuranceId = sp.get("insuranceId") || undefined;
 
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(startDate) ||
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
   const availability = await getAvailabilityRange(startDate, endDate, {
     forPublicPortal: false,
     showRemainingSlots: true,
+    insuranceId,
   });
 
   return NextResponse.json({

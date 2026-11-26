@@ -123,6 +123,31 @@ async function main() {
   }
   console.log("   - Opções de joelho configuradas.");
 
+  // 7. LocationOption (Locais de atendimento)
+  const locations = [
+    {
+      name: "Clínica Particular",
+      address: null,
+      sortOrder: 1,
+      active: true,
+    },
+    {
+      name: "Hospital Porto Dias",
+      address: null,
+      sortOrder: 2,
+      active: true,
+    },
+  ];
+
+  for (const loc of locations) {
+    await prisma.locationOption.upsert({
+      where: { name: loc.name },
+      update: {},
+      create: loc,
+    });
+  }
+  console.log("   - Locais de atendimento configurados.");
+
   console.log(">> Seed finalizado com sucesso!");
 }
 

@@ -42,44 +42,67 @@ model ClinicSettings {
   updatedAt            DateTime @updatedAt
 }
 
+model LocationOption {
+  id             String          @id @default(cuid())
+  name           String          @unique
+  address        String?
+  active         Boolean         @default(true)
+  sortOrder      Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  weeklyQuotas   WeeklyQuota[]
+  dateExceptions DateException[]
+  appointments   Appointment[]
+}
+
 model WeeklyQuota {
-  id                  String   @id @default(cuid())
-  dayOfWeek           Int      // 0 = Domingo ... 6 = Sábado
+  id                  String            @id @default(cuid())
+  dayOfWeek           Int               // 0 = Domingo ... 6 = Sábado
   shift               Shift
-  maxSlots            Int      @default(10)
-  privateReserveSlots Int      @default(0)
-  active              Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  maxSlots            Int               @default(10)
+  privateReserveSlots Int               @default(0)
+  active              Boolean           @default(false)
+  locationId          String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  location          LocationOption?   @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  allowedInsurances InsuranceOption[]
 
   @@unique([dayOfWeek, shift])
   @@index([dayOfWeek, active])
 }
 
 model DateException {
-  id                  String   @id @default(cuid())
-  date                DateTime @db.Date
+  id                  String            @id @default(cuid())
+  date                DateTime          @db.Date
   shift               Shift
-  maxSlots            Int      @default(0)
-  privateReserveSlots Int      @default(0)
-  isBlocked           Boolean  @default(false)
+  maxSlots            Int               @default(0)
+  privateReserveSlots Int               @default(0)
+  isBlocked           Boolean           @default(false)
   reason              String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  locationId          String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  location          LocationOption?   @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  allowedInsurances InsuranceOption[]
 
   @@unique([date, shift])
   @@index([date])
 }
 
 model InsuranceOption {
-  id                String        @id @default(cuid())
-  name              String        @unique
-  isPrivatePriority Boolean       @default(false)
-  active            Boolean       @default(true)
-  sortOrder         Int           @default(0)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                String          @id @default(cuid())
+  name              String          @unique
+  isPrivatePriority Boolean         @default(false)
+  active            Boolean         @default(true)
+  sortOrder         Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   appointments      Appointment[]
+  weeklyQuotas      WeeklyQuota[]
+  dateExceptions    DateException[]
 }
 
 model VisitTypeOption {
@@ -113,6 +136,7 @@ model Appointment {
   insuranceId           String
   visitTypeId           String
   kneeOptionId          String
+  locationId            String?
   status                AppointmentStatus @default(PENDING)
   lgpdAccepted          Boolean           @default(true)
   cancelReason          String?
@@ -128,10 +152,12 @@ model Appointment {
   insurance  InsuranceOption @relation(fields: [insuranceId], references: [id])
   visitType  VisitTypeOption @relation(fields: [visitTypeId], references: [id])
   kneeOption KneeOption      @relation(fields: [kneeOptionId], references: [id])
+  location   LocationOption? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
   @@index([date, shift, status])
   @@index([patientNameNormalized, date, status])
   @@index([whatsapp, date, status])
+  @@index([locationId, date])
 }
 
 model ApiKey {

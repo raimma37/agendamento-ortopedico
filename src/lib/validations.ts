@@ -59,6 +59,8 @@ export const weeklyQuotaItemSchema = z.object({
   maxSlots: z.number().int().min(0).max(200),
   privateReserveSlots: z.number().int().min(0).max(200).default(0),
   active: z.boolean(),
+  locationId: z.string().nullable().optional(),
+  allowedInsuranceIds: z.array(z.string()).optional().default([]),
 });
 
 export const updateWeeklyQuotasSchema = z.object({
@@ -75,6 +77,8 @@ export const dateExceptionUpsertSchema = z.object({
         shift: shiftEnum,
         maxSlots: z.number().int().min(0).max(200),
         privateReserveSlots: z.number().int().min(0).max(200).default(0),
+        locationId: z.string().nullable().optional(),
+        allowedInsuranceIds: z.array(z.string()).optional().default([]),
       })
     )
     .optional(),
@@ -88,17 +92,19 @@ export const clinicSettingsUpdateSchema = z.object({
 });
 
 export const formOptionCreateSchema = z.object({
-  type: z.enum(["insurance", "visitType", "knee"]),
+  type: z.enum(["insurance", "visitType", "knee", "location"]),
   name: z.string().trim().min(2).max(100),
+  address: z.string().trim().max(250).nullable().optional(),
   isPrivatePriority: z.boolean().optional().default(false),
   active: z.boolean().optional().default(true),
   sortOrder: z.number().int().min(0).max(999).optional().default(0),
 });
 
 export const formOptionUpdateSchema = z.object({
-  type: z.enum(["insurance", "visitType", "knee"]),
+  type: z.enum(["insurance", "visitType", "knee", "location"]),
   id: z.string().min(1),
   name: z.string().trim().min(2).max(100).optional(),
+  address: z.string().trim().max(250).nullable().optional(),
   isPrivatePriority: z.boolean().optional(),
   active: z.boolean().optional(),
   sortOrder: z.number().int().min(0).max(999).optional(),

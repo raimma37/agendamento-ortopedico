@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
       insurance: { select: { name: true } },
       visitType: { select: { name: true } },
       kneeOption: { select: { name: true } },
+      location: { select: { name: true } },
     },
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
     take: 500,
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
         protocol: string;
         dateBR: string;
         shiftLabel: string;
+        location: string | null;
         insurance: string;
         visitType: string;
         kneeOption: string;
@@ -94,6 +96,7 @@ export async function GET(request: NextRequest) {
       protocol: apt.protocol,
       dateBR,
       shiftLabel: SHIFT_LABELS[apt.shift],
+      location: apt.location?.name ?? null,
       insurance: apt.insurance.name,
       visitType: apt.visitType.name,
       kneeOption: apt.kneeOption.name,

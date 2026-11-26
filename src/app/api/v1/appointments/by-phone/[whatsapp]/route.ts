@@ -40,6 +40,7 @@ export async function GET(
       insurance: { select: { id: true, name: true } },
       visitType: { select: { id: true, name: true } },
       kneeOption: { select: { id: true, name: true } },
+      location: { select: { id: true, name: true, address: true } },
     },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
   });
@@ -58,6 +59,8 @@ export async function GET(
         dateBR: formatDateBR(dateISO),
         shift: apt.shift,
         shiftLabel: SHIFT_LABELS[apt.shift],
+        location: apt.location?.name ?? null,
+        locationAddress: apt.location?.address ?? null,
         insurance: apt.insurance.name,
         visitType: apt.visitType.name,
         kneeOption: apt.kneeOption.name,
