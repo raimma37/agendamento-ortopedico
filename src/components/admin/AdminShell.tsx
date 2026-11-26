@@ -22,7 +22,7 @@ import {
 const MENU_PRIMARY = [
   { href: "/admin", label: "Dashboard", icon: CalendarDays },
   { href: "/admin/pacientes", label: "Pacientes", icon: Users },
-  { href: "/admin/relatorios", label: "Relatórios A4", icon: Printer },
+  { href: "/admin/relatorios", label: "Relatórios & Estatísticas", icon: Printer },
 ];
 
 const MENU_MANAGE = [

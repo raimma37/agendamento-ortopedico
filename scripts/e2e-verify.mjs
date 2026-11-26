@@ -360,6 +360,9 @@ async function run() {
     { headers: { Cookie: cookie } }
   );
   assert.equal(repRes.status, 200);
+  const repJson = await repRes.json();
+  assert.ok(repJson.summary && typeof repJson.summary.confirmationRate === "number");
+  assert.ok(repJson.summary.byLocation && repJson.summary.byKneeOption && repJson.summary.byShift);
   const csvRes = await fetch(
     `${BASE}/api/admin/reports?startDate=${testDate1}&endDate=${testDate2}&format=csv`,
     { headers: { Cookie: cookie } }
