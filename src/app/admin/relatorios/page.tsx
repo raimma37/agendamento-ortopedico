@@ -89,6 +89,15 @@ interface ReportData {
   rows: ReportRow[];
 }
 
+const STATUS_BADGE: Record<string, string> = {
+  PENDING: "bg-amber-400/15 text-amber-300 border-amber-400/35",
+  CONFIRMED: "bg-emerald-400/15 text-emerald-300 border-emerald-400/35",
+  CHECKED_IN: "bg-sky-400/15 text-sky-300 border-sky-400/35",
+  COMPLETED: "bg-violet-400/20 text-violet-200 border-violet-400/40",
+  CANCELED: "bg-rose-500/15 text-rose-300 border-rose-500/35",
+  NO_SHOW: "bg-slate-400/15 text-slate-300 border-slate-400/35",
+};
+
 function computeStatsFromRows(rows: ReportRow[]): ReportSummary {
   const byInsurance: Record<string, number> = {};
   const byLocation: Record<string, number> = {};
@@ -693,11 +702,10 @@ function ReportsContent() {
                 </h2>
               </div>
               <span
-                className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                  hasSelection
-                    ? "bg-[#6344ff]/25 text-white border-white/60"
-                    : "bg-[#1b183d] text-[#c7c4eb] border-[#343069]"
-                }`}
+                className={`text-xs font-bold px-3 py-1 rounded-full border ${hasSelection
+                  ? "bg-[#6344ff]/25 text-white border-white/60"
+                  : "bg-[#1b183d] text-[#c7c4eb] border-[#343069]"
+                  }`}
               >
                 {hasSelection
                   ? `Calculado sobre ${selectedIds.size} de ${report.rows.length} selecionados`
@@ -872,11 +880,10 @@ function ReportsContent() {
                   <button
                     type="button"
                     onClick={() => setPreviewSelectedOnly((v) => !v)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-                      previewSelectedOnly
-                        ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border-white/80 text-white"
-                        : "bg-[#13112d] border-white/35 text-[#d5d3f5] hover:border-white"
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${previewSelectedOnly
+                      ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border-white/80 text-white"
+                      : "bg-[#13112d] border-white/35 text-[#d5d3f5] hover:border-white"
+                      }`}
                   >
                     {previewSelectedOnly ? "Mostrando só selecionados" : "Ver só selecionados"}
                   </button>
@@ -894,84 +901,94 @@ function ReportsContent() {
         )}
       </div>
 
-      {/* ================= FOLHA DE IMPRESSÃO A4 (ALTO CONTRASTE P&B) ================= */}
+      {/* ================= PRÉVIA DO RELATÓRIO (MIDNIGHT INDIGO NA TELA / A4 P&B NA IMPRESSÃO) ================= */}
       {loading && !report ? (
         <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-10 text-center text-[#9c99c4]">
           <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-[#8b6dff]" />
           Gerando visualização de relatório e estatísticas...
         </div>
       ) : report ? (
-        <div className="bg-white text-slate-950 rounded-2xl border border-[#3d387a] p-6 sm:p-8 shadow-2xl shadow-black/40 print:border-0 print:rounded-none print:shadow-none print:p-0">
+        <div className="bg-[#1b183d] text-[#f1f0ff] rounded-2xl border border-[#2d295e] p-5 sm:p-7 shadow-xl shadow-black/30 print:bg-white print:text-slate-950 print:border-0 print:rounded-none print:shadow-none print:p-0">
           {/* Cabeçalho do Relatório */}
-          <div className="border-b-2 border-slate-900 pb-4 mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+          <div className="border-b border-[#2e2a61] print:border-b-2 print:border-slate-900 pb-4 mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
-              <h2 className="text-xl font-black text-slate-950 uppercase tracking-tight">
+              <h2 className="text-xl font-black text-white print:text-slate-950 uppercase tracking-tight">
                 {report.clinicName}
               </h2>
-              <p className="text-sm font-semibold text-slate-800 mt-0.5">
+              <p className="text-sm font-semibold text-[#a792ff] print:text-slate-800 mt-0.5">
                 Relatório de Atendimentos &amp; Estatísticas — Ordem de Chegada
               </p>
               {hasSelection && (
-                <p className="text-xs font-bold text-slate-900 mt-1">
+                <p className="inline-flex items-center mt-2 px-3 py-1 rounded-full bg-[#6344ff]/25 border border-white/40 text-xs font-bold text-white print:bg-transparent print:border-0 print:p-0 print:mt-1 print:text-slate-900">
                   Seleção Personalizada: {selectedIds.size} de {report.rows.length}{" "}
                   registro(s) selecionado(s)
                 </p>
               )}
             </div>
-            <div className="text-xs text-slate-800 sm:text-right space-y-0.5">
+            <div className="text-xs text-[#c7c4eb] print:text-slate-800 sm:text-right space-y-0.5 bg-[#141230] border border-[#2d295e] rounded-xl px-3.5 py-2.5 print:bg-transparent print:border-0 print:p-0">
               <div>
-                <strong>Período:</strong>{" "}
+                <strong className="text-white print:text-slate-950">Período:</strong>{" "}
                 {report.filters.startDateBR === report.filters.endDateBR
                   ? report.filters.startDateBR
                   : `${report.filters.startDateBR} a ${report.filters.endDateBR}`}
               </div>
               <div>
-                <strong>Turno:</strong> {report.filters.shiftLabel} |{" "}
-                <strong>Local:</strong> {report.filters.locationLabel}
+                <strong className="text-white print:text-slate-950">Turno:</strong>{" "}
+                {report.filters.shiftLabel} |{" "}
+                <strong className="text-white print:text-slate-950">Local:</strong>{" "}
+                {report.filters.locationLabel}
               </div>
               <div>
-                <strong>Convênio:</strong> {report.filters.insuranceLabel} |{" "}
-                <strong>Tipo:</strong> {report.filters.visitTypeLabel}
+                <strong className="text-white print:text-slate-950">Convênio:</strong>{" "}
+                {report.filters.insuranceLabel} |{" "}
+                <strong className="text-white print:text-slate-950">Tipo:</strong>{" "}
+                {report.filters.visitTypeLabel}
               </div>
               <div>
-                <strong>Emitido em:</strong>{" "}
+                <strong className="text-white print:text-slate-950">Emitido em:</strong>{" "}
                 {new Date(report.generatedAt).toLocaleString("pt-BR")}
               </div>
             </div>
           </div>
 
-          {/* Bloco de Estatísticas no Relatório Impresso */}
+          {/* Bloco de Estatísticas do Relatório (também incluso na impressão A4) */}
           <div className={includeStatsInPrint ? "" : "print:hidden"}>
             {/* Resumo Numérico */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
-              <div className="border border-slate-900 rounded-lg p-2.5">
-                <div className="text-slate-600 uppercase font-semibold">Total Listado</div>
-                <div className="text-lg font-black text-slate-950">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3 text-xs">
+              <div className="bg-[#141230] border border-[#343069] rounded-xl p-3 print:bg-white print:border-slate-900 print:rounded-lg print:p-2.5">
+                <div className="text-[#9c99c4] print:text-slate-600 uppercase font-semibold">
+                  Total Listado
+                </div>
+                <div className="text-xl font-black text-white print:text-slate-950 mt-0.5">
                   {activeStats.total}
                 </div>
               </div>
-              <div className="border border-slate-900 rounded-lg p-2.5">
-                <div className="text-slate-600 uppercase font-semibold">Confirmados</div>
-                <div className="text-lg font-black text-slate-950">
+              <div className="bg-[#141230] border border-[#343069] rounded-xl p-3 print:bg-white print:border-slate-900 print:rounded-lg print:p-2.5">
+                <div className="text-[#7dd3fc] print:text-slate-600 uppercase font-semibold">
+                  Confirmados
+                </div>
+                <div className="text-xl font-black text-white print:text-slate-950 mt-0.5">
                   {activeStats.confirmed}{" "}
-                  <span className="text-xs font-bold text-slate-700">
+                  <span className="text-xs font-bold text-[#7dd3fc] print:text-slate-700">
                     ({activeStats.confirmationRate}%)
                   </span>
                 </div>
               </div>
-              <div className="border border-slate-900 rounded-lg p-2.5">
-                <div className="text-slate-600 uppercase font-semibold">Pendentes</div>
-                <div className="text-lg font-black text-slate-950">
+              <div className="bg-[#141230] border border-[#343069] rounded-xl p-3 print:bg-white print:border-slate-900 print:rounded-lg print:p-2.5">
+                <div className="text-amber-300 print:text-slate-600 uppercase font-semibold">
+                  Pendentes
+                </div>
+                <div className="text-xl font-black text-white print:text-slate-950 mt-0.5">
                   {activeStats.pending}
                 </div>
               </div>
-              <div className="border border-slate-900 rounded-lg p-2.5">
-                <div className="text-slate-600 uppercase font-semibold">
+              <div className="bg-[#141230] border border-[#343069] rounded-xl p-3 print:bg-white print:border-slate-900 print:rounded-lg print:p-2.5">
+                <div className="text-rose-300 print:text-slate-600 uppercase font-semibold">
                   Cancelados / Faltas
                 </div>
-                <div className="text-lg font-black text-slate-950">
+                <div className="text-xl font-black text-white print:text-slate-950 mt-0.5">
                   {activeStats.canceled + activeStats.noShow}{" "}
-                  <span className="text-xs font-bold text-slate-700">
+                  <span className="text-xs font-bold text-rose-300 print:text-slate-700">
                     ({activeStats.cancellationRate}%)
                   </span>
                 </div>
@@ -979,76 +996,80 @@ function ReportsContent() {
             </div>
 
             {/* Resumo Estatístico Detalhado por Categoria */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 text-xs text-slate-900">
-              <div className="border border-slate-400 rounded-lg px-3 py-2">
-                <strong>Convênios: </strong>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-5 text-xs text-[#e3e1fa] print:text-slate-900">
+              <div className="bg-[#141230] border border-[#2e2a61] rounded-xl px-3.5 py-2.5 print:bg-white print:border-slate-400 print:rounded-lg print:px-3 print:py-2">
+                <strong className="text-[#a792ff] print:text-slate-950">Convênios: </strong>
                 {Object.entries(activeStats.byInsurance).length > 0
                   ? Object.entries(activeStats.byInsurance)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([k, v]) => {
-                        const pct =
-                          activeStats.total > 0
-                            ? Math.round((v / activeStats.total) * 100)
-                            : 0;
-                        return `${k}: ${v} (${pct}%)`;
-                      })
-                      .join("  •  ")
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([k, v]) => {
+                      const pct =
+                        activeStats.total > 0
+                          ? Math.round((v / activeStats.total) * 100)
+                          : 0;
+                      return `${k}: ${v} (${pct}%)`;
+                    })
+                    .join("  •  ")
                   : "Nenhum"}
               </div>
-              <div className="border border-slate-400 rounded-lg px-3 py-2">
-                <strong>Locais: </strong>
+              <div className="bg-[#141230] border border-[#2e2a61] rounded-xl px-3.5 py-2.5 print:bg-white print:border-slate-400 print:rounded-lg print:px-3 print:py-2">
+                <strong className="text-[#7dd3fc] print:text-slate-950">Locais: </strong>
                 {Object.entries(activeStats.byLocation).length > 0
                   ? Object.entries(activeStats.byLocation)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([k, v]) => {
-                        const pct =
-                          activeStats.total > 0
-                            ? Math.round((v / activeStats.total) * 100)
-                            : 0;
-                        return `${k}: ${v} (${pct}%)`;
-                      })
-                      .join("  •  ")
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([k, v]) => {
+                      const pct =
+                        activeStats.total > 0
+                          ? Math.round((v / activeStats.total) * 100)
+                          : 0;
+                      return `${k}: ${v} (${pct}%)`;
+                    })
+                    .join("  •  ")
                   : "Nenhum"}
               </div>
-              <div className="border border-slate-400 rounded-lg px-3 py-2">
-                <strong>Tipo de Consulta: </strong>
+              <div className="bg-[#141230] border border-[#2e2a61] rounded-xl px-3.5 py-2.5 print:bg-white print:border-slate-400 print:rounded-lg print:px-3 print:py-2">
+                <strong className="text-emerald-300 print:text-slate-950">
+                  Tipo de Consulta:{" "}
+                </strong>
                 {Object.entries(activeStats.byVisitType).length > 0
                   ? Object.entries(activeStats.byVisitType)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([k, v]) => {
-                        const pct =
-                          activeStats.total > 0
-                            ? Math.round((v / activeStats.total) * 100)
-                            : 0;
-                        return `${k}: ${v} (${pct}%)`;
-                      })
-                      .join("  •  ")
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([k, v]) => {
+                      const pct =
+                        activeStats.total > 0
+                          ? Math.round((v / activeStats.total) * 100)
+                          : 0;
+                      return `${k}: ${v} (${pct}%)`;
+                    })
+                    .join("  •  ")
                   : "Nenhum"}
               </div>
-              <div className="border border-slate-400 rounded-lg px-3 py-2">
-                <strong>Joelho Avaliado: </strong>
+              <div className="bg-[#141230] border border-[#2e2a61] rounded-xl px-3.5 py-2.5 print:bg-white print:border-slate-400 print:rounded-lg print:px-3 print:py-2">
+                <strong className="text-pink-300 print:text-slate-950">
+                  Joelho Avaliado:{" "}
+                </strong>
                 {Object.entries(activeStats.byKneeOption).length > 0
                   ? Object.entries(activeStats.byKneeOption)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([k, v]) => {
-                        const pct =
-                          activeStats.total > 0
-                            ? Math.round((v / activeStats.total) * 100)
-                            : 0;
-                        return `${k}: ${v} (${pct}%)`;
-                      })
-                      .join("  •  ")
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([k, v]) => {
+                      const pct =
+                        activeStats.total > 0
+                          ? Math.round((v / activeStats.total) * 100)
+                          : 0;
+                      return `${k}: ${v} (${pct}%)`;
+                    })
+                    .join("  •  ")
                   : "Nenhum"}
               </div>
             </div>
           </div>
 
           {/* Tabela de Impressão + Seleção */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse border border-slate-900">
+          <div className="overflow-x-auto rounded-xl border border-[#2d295e] bg-[#141230]/70 print:rounded-none print:border-0 print:bg-transparent">
+            <table className="w-full text-xs text-left border-collapse print:border print:border-slate-900">
               <thead>
-                <tr className="bg-slate-100 text-slate-950">
-                  <th className="border border-slate-900 px-2 py-2 text-center w-9 print:hidden">
+                <tr className="bg-[#151233] border-b border-[#2b275c] text-[11px] uppercase tracking-wider text-[#9c99c4] print:bg-slate-100 print:text-slate-950 print:border-slate-900">
+                  <th className="px-3 py-3 text-center w-10 print:hidden">
                     <button
                       type="button"
                       onClick={() =>
@@ -1057,41 +1078,59 @@ function ReportsContent() {
                           : selectAllFiltered()
                       }
                       title="Selecionar/desmarcar todos"
-                      className="inline-flex items-center justify-center text-slate-900 hover:text-indigo-700"
+                      className="inline-flex items-center justify-center text-[#c7c4eb] hover:text-white"
                     >
                       {report.rows.length > 0 &&
-                      selectedIds.size === report.rows.length ? (
-                        <CheckSquare className="h-4 w-4" />
+                        selectedIds.size === report.rows.length ? (
+                        <CheckSquare className="h-4 w-4 text-[#957bff]" />
                       ) : (
                         <Square className="h-4 w-4" />
                       )}
                     </button>
                   </th>
-                  <th className="border border-slate-900 px-2 py-2 text-center w-8">#</th>
-                  <th className="border border-slate-900 px-2 py-2 text-left">Protocolo</th>
+                  <th className="px-3 py-3 text-center w-8 print:border print:border-slate-900 print:px-2 print:py-2">
+                    #
+                  </th>
+                  <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
+                    Protocolo
+                  </th>
                   {report.filters.startDate !== report.filters.endDate && (
-                    <th className="border border-slate-900 px-2 py-2 text-left">Data</th>
+                    <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
+                      Data
+                    </th>
                   )}
-                  <th className="border border-slate-900 px-2 py-2 text-left">
+                  <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
                     Nome do Paciente
                   </th>
-                  <th className="border border-slate-900 px-2 py-2 text-left">WhatsApp</th>
-                  <th className="border border-slate-900 px-2 py-2 text-left">Local</th>
-                  <th className="border border-slate-900 px-2 py-2 text-left">Convênio</th>
-                  <th className="border border-slate-900 px-2 py-2 text-left">Tipo</th>
-                  <th className="border border-slate-900 px-2 py-2 text-left">Joelho</th>
-                  <th className="border border-slate-900 px-2 py-2 text-left">Status</th>
-                  <th className="border border-slate-900 px-2 py-2 text-left w-32">
+                  <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
+                    WhatsApp
+                  </th>
+                  <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
+                    Local
+                  </th>
+                  <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
+                    Convênio
+                  </th>
+                  <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
+                    Tipo
+                  </th>
+                  <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
+                    Joelho
+                  </th>
+                  <th className="px-3 py-3 font-semibold print:border print:border-slate-900 print:px-2 print:py-2">
+                    Status
+                  </th>
+                  <th className="px-3 py-3 font-semibold w-32 print:border print:border-slate-900 print:px-2 print:py-2">
                     Chegada / Obs.
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[#282454] print:divide-slate-900">
                 {displayedScreenRows.length === 0 ? (
                   <tr>
                     <td
                       colSpan={report.filters.startDate !== report.filters.endDate ? 12 : 11}
-                      className="border border-slate-900 px-3 py-6 text-center text-slate-600"
+                      className="px-4 py-8 text-center text-[#8d8ab8] print:border print:border-slate-900 print:text-slate-600"
                     >
                       Nenhum agendamento para os filtros selecionados.
                     </td>
@@ -1107,14 +1146,14 @@ function ReportsContent() {
                         onClick={() => toggleRow(row.id)}
                         className={`break-inside-avoid cursor-pointer transition-colors ${
                           hiddenInPrint
-                            ? "print:hidden opacity-45 hover:opacity-80 bg-slate-50"
+                            ? "print:hidden opacity-45 hover:opacity-80 bg-[#141230]/40"
                             : isChecked
-                            ? "bg-indigo-50/80 print:bg-transparent"
-                            : "hover:bg-slate-50"
-                        }`}
+                            ? "bg-[#2a2363]/85 hover:bg-[#322a75] print:bg-transparent"
+                            : "hover:bg-[#231f4d]/70 print:bg-transparent"
+                          }`}
                       >
                         <td
-                          className="border border-slate-900 px-2 py-2.5 text-center print:hidden"
+                          className="px-3 py-3 text-center print:hidden"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <input
@@ -1122,48 +1161,55 @@ function ReportsContent() {
                             checked={isChecked}
                             onChange={() => toggleRow(row.id)}
                             aria-label={`Selecionar ${row.patientName}`}
-                            className="h-4 w-4 accent-[#6344ff] cursor-pointer"
+                            className="h-4 w-4 accent-[#8b6dff] cursor-pointer"
                           />
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5 text-center font-bold">
+                        <td className="px-3 py-3 text-center font-bold text-[#c7c4eb] print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           <span className="print:hidden">{row.order}</span>
                           <span className="hidden print:inline">{displayOrder}</span>
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5 font-mono font-bold whitespace-nowrap">
+                        <td className="px-3 py-3 font-mono font-bold text-[#a792ff] whitespace-nowrap print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           {row.protocol}
                         </td>
                         {report.filters.startDate !== report.filters.endDate && (
-                          <td className="border border-slate-900 px-2 py-2.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap text-[#d5d3f5] print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                             {row.dateBR}
                           </td>
                         )}
-                        <td className="border border-slate-900 px-2 py-2.5 font-semibold">
+                        <td className="px-3 py-3 font-semibold text-white print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           {row.patientName}
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap text-[#c7c4eb] print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           {row.whatsappDisplay}
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5">
+                        <td className="px-3 py-3 text-[#7dd3fc] font-medium print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           {row.location || "—"}
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5">
+                        <td className="px-3 py-3 font-semibold text-white print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           {row.insurance}
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5">
+                        <td className="px-3 py-3 text-[#e3e1fa] print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           {row.visitType}
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5">
+                        <td className="px-3 py-3 text-[#c7c4eb] print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           {row.kneeOption}
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5 whitespace-nowrap">
-                          {row.statusLabel}
+                        <td className="px-3 py-3 whitespace-nowrap print:border print:border-slate-900 print:px-2 print:py-2.5">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border print:border-0 print:bg-transparent print:text-slate-950 print:p-0 ${
+                              STATUS_BADGE[row.status] ||
+                              "bg-slate-500/20 text-slate-200 border-slate-500/30"
+                            }`}
+                          >
+                            {row.statusLabel}
+                          </span>
                         </td>
-                        <td className="border border-slate-900 px-2 py-2.5">
+                        <td className="px-3 py-3 text-[#c7c4eb] print:border print:border-slate-900 print:px-2 print:py-2.5 print:text-slate-950">
                           {row.checkedInAt
                             ? new Date(row.checkedInAt).toLocaleTimeString("pt-BR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
                             : ""}
                           {row.notes ? ` ${row.notes}` : ""}
                         </td>

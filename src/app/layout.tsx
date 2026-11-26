@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "Agendamento Ortopédico — Especialidade em Joelho",
   description:
     "Sistema de agendamento por ordem de chegada e cotas de atendimento para consultório ortopédico.",
+  other: {
+    "darkreader-lock": "true",
+  },
 };
 
 export const viewport: Viewport = {

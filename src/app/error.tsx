@@ -22,7 +22,7 @@ export default function GlobalError({
       <button
         type="button"
         onClick={reset}
-        className="mt-5 min-h-[46px] px-5 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold inline-flex items-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110"
+        className="mt-5 min-h-[46px] px-5 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white font-bold inline-flex items-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 transition-all"
       >
         <RotateCcw className="h-4 w-4" />
         Tentar novamente
