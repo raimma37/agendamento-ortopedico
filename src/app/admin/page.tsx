@@ -204,7 +204,7 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => void loadDashboard()}
-            className="h-10 px-3.5 rounded-xl border border-[#312d66] bg-[#1c1940] text-[#d5d3f5] hover:border-[#8b6dff] flex items-center gap-1.5 text-sm font-semibold transition-colors"
+            className="h-10 px-3.5 rounded-xl border border-white/35 bg-[#1c1940] text-[#d5d3f5] hover:border-white/85 hover:text-white flex items-center gap-1.5 text-sm font-semibold transition-colors"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Atualizar
@@ -212,7 +212,7 @@ export default function AdminDashboardPage() {
 
           <Link
             href={`/admin/relatorios?startDate=${date}&endDate=${date}`}
-            className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white hover:brightness-110 flex items-center gap-2 text-sm font-bold shadow-lg shadow-violet-600/30 transition-all"
+            className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white hover:brightness-110 flex items-center gap-2 text-sm font-bold shadow-lg shadow-violet-600/30 transition-all"
           >
             <Printer className="h-4 w-4" />
             Imprimir Lista do Dia
@@ -459,8 +459,8 @@ export default function AdminDashboardPage() {
               onClick={() => setKneeOptionId("")}
               className={`px-3 py-1.5 rounded-lg border font-semibold transition-all ${
                 kneeOptionId === ""
-                  ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent shadow-sm"
-                  : "bg-[#13112d] text-[#a8a5ce] border-[#312d66] hover:border-[#8b6dff]"
+                  ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-white/75 shadow-sm"
+                  : "bg-[#13112d] text-[#a8a5ce] border-white/30 hover:border-white/80 hover:text-white"
               }`}
             >
               Todos
@@ -472,8 +472,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setKneeOptionId(ko.id)}
                 className={`px-3 py-1.5 rounded-lg border font-semibold transition-all ${
                   kneeOptionId === ko.id
-                    ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent shadow-sm"
-                    : "bg-[#13112d] text-[#a8a5ce] border-[#312d66] hover:border-[#8b6dff]"
+                    ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-white/75 shadow-sm"
+                    : "bg-[#13112d] text-[#a8a5ce] border-white/30 hover:border-white/80 hover:text-white"
                 }`}
               >
                 {ko.name}

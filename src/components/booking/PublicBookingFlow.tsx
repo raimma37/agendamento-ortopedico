@@ -391,7 +391,7 @@ export default function PublicBookingFlow() {
         <button
           type="button"
           onClick={() => void fetchBootstrap(insuranceId || undefined, true)}
-          className="min-h-[48px] px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold shadow-lg shadow-violet-600/30"
+          className="min-h-[48px] px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white font-bold shadow-lg shadow-violet-600/30 transition-all"
         >
           Tentar novamente
         </button>
@@ -422,7 +422,7 @@ export default function PublicBookingFlow() {
           </div>
           <Link
             href="/admin"
-            className="text-xs font-semibold text-[#8d8ab8] hover:text-white flex items-center gap-1 shrink-0 py-2 px-2.5 rounded-xl bg-[#211e47] border border-[#312d66]"
+            className="text-xs font-semibold text-[#d5d3f5] hover:text-white flex items-center gap-1 shrink-0 py-2 px-2.5 rounded-xl bg-[#211e47] border border-white/35 hover:border-white/85 transition-colors"
             title="Acesso Administrativo"
           >
             <Lock className="h-3.5 w-3.5" />
@@ -493,10 +493,10 @@ export default function PublicBookingFlow() {
                       key={opt.id}
                       type="button"
                       onClick={() => handleSelectInsurance(opt.id)}
-                      className={`min-h-[48px] px-3 py-2.5 rounded-xl border-2 text-sm font-bold transition-all text-center ${
+                      className={`min-h-[48px] px-3 py-2.5 rounded-xl border text-sm font-bold transition-all text-center ${
                         active
-                          ? "border-[#957bff] bg-gradient-to-br from-[#8f71ff] to-[#6344ff] text-white shadow-lg shadow-violet-600/30"
-                          : "border-[#2e2a61] bg-[#141230] text-[#d5d3f5] hover:border-[#6344ff]"
+                          ? "border-white/85 bg-gradient-to-br from-[#8f71ff] to-[#6344ff] text-white shadow-lg shadow-violet-600/30"
+                          : "border-white/30 bg-[#141230] text-[#d5d3f5] hover:border-white/80"
                       }`}
                     >
                       {opt.name}
@@ -570,8 +570,8 @@ export default function PublicBookingFlow() {
                           onClick={() => handleSelectDate(d.date)}
                           className={`min-h-[64px] min-w-[92px] max-w-[140px] px-3 py-2 rounded-2xl border text-center shrink-0 transition-all ${
                             active
-                              ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] border-transparent text-white shadow-lg shadow-violet-600/35"
-                              : "bg-[#1b183d] border-[#2f2b63] text-[#e3e1fa] hover:border-[#8b6dff]"
+                              ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] border-white/85 text-white shadow-lg shadow-violet-600/35"
+                              : "bg-[#1b183d] border-white/30 text-[#e3e1fa] hover:border-white/80"
                           }`}
                         >
                           <div
@@ -606,7 +606,7 @@ export default function PublicBookingFlow() {
                       type="button"
                       onClick={prevMonth}
                       aria-label="Mês anterior"
-                      className="h-11 w-11 rounded-xl border border-[#322e66] bg-[#141230] flex items-center justify-center text-white hover:border-[#8b6dff]"
+                      className="h-11 w-11 rounded-xl border border-white/35 bg-[#141230] flex items-center justify-center text-white hover:border-white/85 transition-colors"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </button>
@@ -617,7 +617,7 @@ export default function PublicBookingFlow() {
                       type="button"
                       onClick={nextMonth}
                       aria-label="Próximo mês"
-                      className="h-11 w-11 rounded-xl border border-[#322e66] bg-[#141230] flex items-center justify-center text-white hover:border-[#8b6dff]"
+                      className="h-11 w-11 rounded-xl border border-white/35 bg-[#141230] flex items-center justify-center text-white hover:border-white/85 transition-colors"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>
@@ -651,9 +651,9 @@ export default function PublicBookingFlow() {
                           onClick={() => handleSelectDate(cell.dateStr!)}
                           className={`h-12 rounded-xl text-sm font-bold flex flex-col items-center justify-center transition-all ${
                             isSelected
-                              ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] text-white shadow-lg shadow-violet-600/40 ring-2 ring-[#b39eff]/50"
+                              ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] text-white border border-white/85 shadow-lg shadow-violet-600/40 ring-2 ring-[#b39eff]/50"
                               : isAvailable
-                              ? "bg-[#242052] text-white hover:bg-[#2f2a69] border border-[#453d91]"
+                              ? "bg-[#242052] text-white hover:bg-[#2f2a69] border border-white/35 hover:border-white/80"
                               : "text-[#4b4775] bg-transparent cursor-not-allowed"
                           }`}
                         >
@@ -690,10 +690,10 @@ export default function PublicBookingFlow() {
                               key={s.shift}
                               type="button"
                               onClick={() => setSelectedShift(s.shift)}
-                              className={`min-h-[72px] w-full px-4 py-3.5 rounded-2xl border-2 text-left flex items-center justify-between gap-3 transition-all ${
+                              className={`min-h-[72px] w-full px-4 py-3.5 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all ${
                                 isSelected
-                                  ? "border-[#957bff] bg-gradient-to-r from-[#2c2569] to-[#232059] shadow-lg shadow-violet-700/25"
-                                  : "border-[#2e2a61] bg-[#1b183d] hover:border-[#6344ff]"
+                                  ? "border-white/85 bg-gradient-to-r from-[#2c2569] to-[#232059] shadow-lg shadow-violet-700/25"
+                                  : "border-white/30 bg-[#1b183d] hover:border-white/80"
                               }`}
                             >
                               <div className="flex items-start gap-3 min-w-0">
@@ -766,7 +766,7 @@ export default function PublicBookingFlow() {
                     setStep(2);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className="w-full min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] to-[#6344ff] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="w-full min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] to-[#6344ff] border border-white/75 hover:border-white text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
                   Continuar para seus dados
                   <ArrowRight className="h-5 w-5" />
@@ -811,7 +811,7 @@ export default function PublicBookingFlow() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-xs font-bold text-[#a792ff] hover:text-white px-2.5 py-1 rounded-lg bg-[#252154] shrink-0"
+                className="text-xs font-bold text-white px-3 py-1.5 rounded-lg bg-[#252154] border border-white/40 hover:border-white shrink-0 transition-colors"
               >
                 Alterar
               </button>
@@ -882,10 +882,10 @@ export default function PublicBookingFlow() {
                         key={vt.id}
                         type="button"
                         onClick={() => setVisitTypeId(vt.id)}
-                        className={`min-h-[52px] px-3 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                        className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
                           active
-                            ? "border-[#957bff] bg-gradient-to-r from-[#8f71ff]/25 to-[#4ea8ff]/20 text-white shadow-sm"
-                            : "border-[#2e2a61] bg-[#141230] text-[#b4b1db] hover:border-[#6344ff]"
+                            ? "border-white/85 bg-gradient-to-r from-[#8f71ff]/25 to-[#4ea8ff]/20 text-white shadow-sm"
+                            : "border-white/30 bg-[#141230] text-[#b4b1db] hover:border-white/80 hover:text-white"
                         }`}
                       >
                         {vt.name}
@@ -908,10 +908,10 @@ export default function PublicBookingFlow() {
                         key={ko.id}
                         type="button"
                         onClick={() => setKneeOptionId(ko.id)}
-                        className={`min-h-[52px] px-3 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                        className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
                           active
-                            ? "border-[#957bff] bg-gradient-to-r from-[#8f71ff]/25 to-[#4ea8ff]/20 text-white shadow-sm"
-                            : "border-[#2e2a61] bg-[#141230] text-[#b4b1db] hover:border-[#6344ff]"
+                            ? "border-white/85 bg-gradient-to-r from-[#8f71ff]/25 to-[#4ea8ff]/20 text-white shadow-sm"
+                            : "border-white/30 bg-[#141230] text-[#b4b1db] hover:border-white/80 hover:text-white"
                         }`}
                       >
                         {ko.name}
@@ -946,7 +946,7 @@ export default function PublicBookingFlow() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="min-h-[52px] px-4 rounded-xl border border-[#343069] bg-[#1b183d] text-[#d5d3f5] font-semibold flex items-center justify-center gap-1.5 hover:border-[#8b6dff]"
+                  className="min-h-[52px] px-4 rounded-xl border border-white/40 bg-[#1b183d] text-[#d5d3f5] font-semibold flex items-center justify-center gap-1.5 hover:border-white hover:text-white transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Voltar
@@ -954,7 +954,7 @@ export default function PublicBookingFlow() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] to-[#6344ff] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50"
+                  className="flex-1 min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] to-[#6344ff] border border-white/75 hover:border-white text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50 transition-all"
                 >
                   {submitting ? (
                     <>
@@ -1108,7 +1108,7 @@ export default function PublicBookingFlow() {
               <button
                 type="button"
                 onClick={handleDownloadPdf}
-                className="w-full min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] via-[#6e52ff] to-[#3b82f6] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/35 hover:brightness-110 transition-all"
+                className="w-full min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] via-[#6e52ff] to-[#3b82f6] border border-white/80 hover:border-white text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/35 hover:brightness-110 transition-all"
               >
                 {pdfDownloaded ? (
                   <>
@@ -1126,7 +1126,7 @@ export default function PublicBookingFlow() {
               <button
                 type="button"
                 onClick={resetBooking}
-                className="w-full min-h-[50px] rounded-xl border border-[#343069] bg-[#1b183d] text-white font-semibold hover:border-[#8b6dff] transition-colors"
+                className="w-full min-h-[50px] rounded-xl border border-white/40 bg-[#1b183d] text-white font-semibold hover:border-white transition-colors"
               >
                 Fazer outro agendamento
               </button>

@@ -188,7 +188,7 @@ export default function AdminIntegrationsPage() {
           href="/api/docs"
           target="_blank"
           rel="noreferrer"
-          className="h-10 px-4 rounded-xl border border-[#332f6b] bg-[#1b183d] text-[#e3e1fa] hover:border-[#8b6dff] inline-flex items-center gap-2 text-sm font-semibold transition-colors"
+          className="h-10 px-4 rounded-xl border border-white/40 bg-[#1b183d] text-[#e3e1fa] hover:border-white inline-flex items-center gap-2 text-sm font-semibold transition-colors"
         >
           <ExternalLink className="h-4 w-4 text-[#957bff]" />
           OpenAPI Spec (/api/docs)
@@ -226,7 +226,7 @@ export default function AdminIntegrationsPage() {
             <a
               href="/api/admin/n8n-templates/fluxo-lembrete-cron.json"
               download
-              className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white hover:brightness-110 text-sm font-bold inline-flex items-center justify-center gap-2 shadow-lg shadow-violet-600/25"
+              className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white hover:brightness-110 text-sm font-bold inline-flex items-center justify-center gap-2 shadow-lg shadow-violet-600/25 transition-all"
             >
               <Download className="h-4 w-4" />
               Baixar fluxo-lembrete-cron.json
@@ -247,7 +247,7 @@ export default function AdminIntegrationsPage() {
             <a
               href="/api/admin/n8n-templates/fluxo-resposta-whatsapp.json"
               download
-              className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] text-white hover:brightness-110 text-sm font-bold inline-flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25"
+              className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] border border-white/75 hover:border-white text-white hover:brightness-110 text-sm font-bold inline-flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
             >
               <Download className="h-4 w-4" />
               Baixar fluxo-resposta-whatsapp.json
@@ -273,7 +273,7 @@ export default function AdminIntegrationsPage() {
           />
           <button
             type="submit"
-            className="h-10 px-5 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-violet-600/25 hover:brightness-110"
+            className="h-10 px-5 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white font-bold text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-violet-600/25 hover:brightness-110 transition-all"
           >
             <Plus className="h-4 w-4" />
             Gerar Nova API Key
@@ -433,7 +433,7 @@ export default function AdminIntegrationsPage() {
 
           <button
             type="submit"
-            className="h-10 px-4 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-sm font-bold flex items-center justify-center gap-1.5 hover:brightness-110"
+            className="h-10 px-4 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white text-sm font-bold flex items-center justify-center gap-1.5 hover:brightness-110 transition-all"
           >
             <Plus className="h-4 w-4" />
             Adicionar Webhook

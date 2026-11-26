@@ -98,10 +98,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         key={item.href}
         href={item.href}
         onClick={() => setMobileMenuOpen(false)}
-        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
           active
-            ? "bg-gradient-to-r from-[#9274ff] to-[#684aff] text-white shadow-lg shadow-violet-600/30"
-            : "text-[#9f9cc6] hover:bg-[#221f4a] hover:text-white"
+            ? "bg-gradient-to-r from-[#9274ff] to-[#684aff] text-white border-white/70 shadow-lg shadow-violet-600/30"
+            : "border-transparent text-[#9f9cc6] hover:bg-[#221f4a] hover:border-white/25 hover:text-white"
         }`}
       >
         <Icon className="h-4 w-4 shrink-0" />
@@ -125,7 +125,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <button
           type="button"
           onClick={() => setMobileMenuOpen((v) => !v)}
-          className="h-10 w-10 rounded-xl bg-[#221f4a] border border-[#343069] flex items-center justify-center text-white"
+          className="h-10 w-10 rounded-xl bg-[#221f4a] border border-white/40 hover:border-white flex items-center justify-center text-white"
           aria-label="Abrir menu"
         >
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -192,7 +192,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <Link
               href="/"
               target="_blank"
-              className="mt-3 w-full h-9 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-xs border border-white/25 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+              className="mt-3 w-full h-9 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-xs border border-white/65 hover:border-white text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               Abrir Portal Público
@@ -202,7 +202,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-300 bg-[#211e47] hover:bg-rose-500/15 border border-[#2f2b61] hover:border-rose-500/40 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-300 bg-[#211e47] hover:bg-rose-500/15 border border-white/35 hover:border-white/80 transition-colors"
           >
             <LogOut className="h-3.5 w-3.5 shrink-0" />
             Sair do Painel
@@ -220,7 +220,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <div className="flex items-center gap-3">
             <Link
               href="/admin/relatorios"
-              className="h-9 px-3.5 rounded-xl bg-[#1d1a42] border border-[#302c66] hover:border-[#7c5cff] text-xs font-semibold text-[#d5d3f5] flex items-center gap-2 transition-colors"
+              className="h-9 px-3.5 rounded-xl bg-[#1d1a42] border border-white/35 hover:border-white/85 text-xs font-semibold text-[#d5d3f5] hover:text-white flex items-center gap-2 transition-colors"
             >
               <Printer className="h-3.5 w-3.5 text-[#957bff]" />
               Imprimir A4

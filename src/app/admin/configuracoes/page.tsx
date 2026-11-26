@@ -558,10 +558,10 @@ export default function AdminSettingsPage() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id as typeof tab)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
+              className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all border ${
                 active
-                  ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white shadow-lg shadow-violet-600/30"
-                  : "bg-[#1b183d] border border-[#2f2b63] text-[#b4b1db] hover:text-white hover:border-[#7c5cff]"
+                  ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-white/75 hover:border-white shadow-lg shadow-violet-600/30"
+                  : "bg-[#1b183d] border-white/30 text-[#b4b1db] hover:text-white hover:border-white/75"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -735,8 +735,8 @@ export default function AdminSettingsPage() {
                                       }
                                       className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-all ${
                                         allInsurances
-                                          ? "bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] text-white border-transparent"
-                                          : "bg-[#13112d] text-[#9c99c4] border-[#312d66] hover:border-[#8b6dff]"
+                                          ? "bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] text-white border-white/75"
+                                          : "bg-[#13112d] text-[#9c99c4] border-white/25 hover:border-white/70"
                                       }`}
                                     >
                                       Todos
@@ -754,8 +754,8 @@ export default function AdminSettingsPage() {
                                           }
                                           className={`px-2 py-1 rounded-md text-[11px] font-semibold border transition-all ${
                                             selected
-                                              ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent shadow-sm"
-                                              : "bg-[#13112d] text-[#b4b1db] border-[#312d66] hover:border-[#8b6dff]"
+                                              ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-white/75 shadow-sm"
+                                              : "bg-[#13112d] text-[#b4b1db] border-white/25 hover:border-white/70"
                                           }`}
                                         >
                                           {ins.name}
@@ -781,7 +781,7 @@ export default function AdminSettingsPage() {
               type="button"
               disabled={savingWeekly}
               onClick={saveWeeklyQuotas}
-              className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold flex items-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50"
+              className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white font-bold flex items-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50 transition-all"
             >
               {savingWeekly ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -808,7 +808,7 @@ export default function AdminSettingsPage() {
                       : { year: p.year, month: p.month - 1 }
                   )
                 }
-                className="h-9 w-9 rounded-xl border border-[#343069] bg-[#13112d] text-white flex items-center justify-center hover:border-[#8b6dff]"
+                className="h-9 w-9 rounded-xl border border-white/35 bg-[#13112d] text-white flex items-center justify-center hover:border-white/85 transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -824,7 +824,7 @@ export default function AdminSettingsPage() {
                       : { year: p.year, month: p.month + 1 }
                   )
                 }
-                className="h-9 w-9 rounded-xl border border-[#343069] bg-[#13112d] text-white flex items-center justify-center hover:border-[#8b6dff]"
+                className="h-9 w-9 rounded-xl border border-white/35 bg-[#13112d] text-white flex items-center justify-center hover:border-white/85 transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -851,12 +851,12 @@ export default function AdminSettingsPage() {
                     onClick={() => openDateEditor(c.dateStr!)}
                     className={`h-12 rounded-xl text-sm font-bold border flex flex-col items-center justify-center transition-all ${
                       isSelected
-                        ? "bg-gradient-to-br from-[#9274ff] to-[#6344ff] text-white border-transparent shadow-lg shadow-violet-600/35"
+                        ? "bg-gradient-to-br from-[#9274ff] to-[#6344ff] text-white border-white/85 shadow-lg shadow-violet-600/35"
                         : isBlocked
                         ? "bg-rose-500/20 text-rose-200 border-rose-500/40"
                         : isCustom
                         ? "bg-amber-400/20 text-amber-200 border-amber-400/40"
-                        : "bg-[#141230] text-[#d5d3f5] border-[#2c285c] hover:border-[#8b6dff]"
+                        : "bg-[#141230] text-[#d5d3f5] border-white/25 hover:border-white/75"
                     }`}
                   >
                     <span>{c.dayNum}</span>
@@ -911,7 +911,7 @@ export default function AdminSettingsPage() {
                       type="button"
                       onClick={restoreWeeklyForDate}
                       disabled={savingDate}
-                      className="text-xs font-semibold text-[#a792ff] hover:text-rose-300 flex items-center gap-1"
+                      className="text-xs font-semibold text-[#a792ff] hover:text-rose-300 border border-white/35 hover:border-white/80 rounded-lg px-2.5 py-1 flex items-center gap-1 transition-colors"
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
                       Restaurar semana
@@ -1066,8 +1066,8 @@ export default function AdminSettingsPage() {
                                     }
                                     className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-all ${
                                       allIns
-                                        ? "bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] text-white border-transparent"
-                                        : "bg-[#1b183d] text-[#9c99c4] border-[#312d66]"
+                                        ? "bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] text-white border-white/75"
+                                        : "bg-[#1b183d] text-[#9c99c4] border-white/25 hover:border-white/70"
                                     }`}
                                   >
                                     Todos
@@ -1083,8 +1083,8 @@ export default function AdminSettingsPage() {
                                         onClick={() => toggleExInsurance(s.key, ins.id)}
                                         className={`px-2 py-1 rounded-md text-[11px] font-semibold border transition-all ${
                                           selected
-                                            ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-transparent"
-                                            : "bg-[#1b183d] text-[#b4b1db] border-[#312d66]"
+                                            ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white border-white/75"
+                                            : "bg-[#1b183d] text-[#b4b1db] border-white/25 hover:border-white/70"
                                         }`}
                                       >
                                         {ins.name}
@@ -1105,7 +1105,7 @@ export default function AdminSettingsPage() {
                   type="button"
                   disabled={savingDate}
                   onClick={saveDateException}
-                  className="w-full h-11 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50"
+                  className="w-full h-11 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50 transition-all"
                 >
                   {savingDate ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -1150,7 +1150,7 @@ export default function AdminSettingsPage() {
                 <button
                   type="button"
                   onClick={() => createOption("location")}
-                  className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-xs font-bold flex items-center gap-1"
+                  className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/70 hover:border-white text-white text-xs font-bold flex items-center gap-1 transition-all"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add
@@ -1193,7 +1193,7 @@ export default function AdminSettingsPage() {
                                 address: editingLocAddress.trim() || null,
                               })
                             }
-                            className="h-8 px-2.5 rounded-md bg-[#6344ff] text-white text-[11px] font-bold"
+                            className="h-8 px-2.5 rounded-md bg-[#6344ff] border border-white/70 hover:border-white text-white text-[11px] font-bold"
                           >
                             Salvar
                           </button>
@@ -1265,7 +1265,7 @@ export default function AdminSettingsPage() {
                 <button
                   type="button"
                   onClick={() => createOption("insurance")}
-                  className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-xs font-bold flex items-center gap-1"
+                  className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/70 hover:border-white text-white text-xs font-bold flex items-center gap-1 transition-all"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add
@@ -1355,7 +1355,7 @@ export default function AdminSettingsPage() {
               <button
                 type="button"
                 onClick={() => createOption("visitType")}
-                className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-xs font-bold flex items-center gap-1"
+                className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/70 hover:border-white text-white text-xs font-bold flex items-center gap-1 transition-all"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add
@@ -1423,7 +1423,7 @@ export default function AdminSettingsPage() {
               <button
                 type="button"
                 onClick={() => createOption("knee")}
-                className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-xs font-bold flex items-center gap-1"
+                className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/70 hover:border-white text-white text-xs font-bold flex items-center gap-1 transition-all"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add
@@ -1551,7 +1551,7 @@ export default function AdminSettingsPage() {
           <button
             type="submit"
             disabled={savingGeneral}
-            className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold flex items-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50"
+            className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white font-bold flex items-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50 transition-all"
           >
             {savingGeneral ? (
               <Loader2 className="h-4 w-4 animate-spin" />

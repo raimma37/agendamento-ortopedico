@@ -121,7 +121,7 @@ function ReportsContent() {
             <button
               type="button"
               onClick={handleExportCsv}
-              className="h-10 px-4 rounded-xl border border-[#332f6b] bg-[#1b183d] text-[#e3e1fa] hover:border-[#8b6dff] flex items-center gap-2 text-sm font-semibold transition-colors"
+              className="h-10 px-4 rounded-xl border border-white/40 bg-[#1b183d] text-[#e3e1fa] hover:border-white flex items-center gap-2 text-sm font-semibold transition-colors"
             >
               <Download className="h-4 w-4 text-[#957bff]" />
               Exportar CSV / Excel
@@ -129,7 +129,7 @@ function ReportsContent() {
             <button
               type="button"
               onClick={handlePrint}
-              className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white hover:brightness-110 flex items-center gap-2 text-sm font-bold shadow-lg shadow-violet-600/30 transition-all"
+              className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] border border-white/75 hover:border-white text-white hover:brightness-110 flex items-center gap-2 text-sm font-bold shadow-lg shadow-violet-600/30 transition-all"
             >
               <Printer className="h-4 w-4" />
               Imprimir / Salvar PDF (A4)

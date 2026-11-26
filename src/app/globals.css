@@ -16,6 +16,10 @@
     font-size: 16px;
   }
 
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
   /* Custom subtle dark scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
