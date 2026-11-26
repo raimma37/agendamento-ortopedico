@@ -8,6 +8,7 @@ import {
   formatDateISO,
   formatWhatsappDisplay,
   getTodayISO,
+  isValidDateString,
   normalizePatientName,
   parseDateOnly,
   SHIFT_LABELS,
@@ -24,6 +25,12 @@ export async function GET(request: NextRequest) {
 
   const sp = request.nextUrl.searchParams;
   const dateStr = sp.get("date") || getTodayISO();
+  if (!isValidDateString(dateStr)) {
+    return NextResponse.json(
+      { error: "Data inválida. Use o formato YYYY-MM-DD." },
+      { status: 400 }
+    );
+  }
   const shift = sp.get("shift") as Shift | null;
   const insuranceId = sp.get("insuranceId");
   const visitTypeId = sp.get("visitTypeId");

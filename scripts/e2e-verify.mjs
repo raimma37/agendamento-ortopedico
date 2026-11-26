@@ -168,8 +168,8 @@ async function run() {
   assert.equal(book1.appointment.whatsapp, "5591999991111", "WhatsApp deve estar em E.164");
   console.log(`✔ 5. Agendamento #1 criado (${book1.appointment.protocol}), WhatsApp E.164 OK`);
 
-  // 7. Testar bloqueio de duplicidade com variação de acento, caixa e espaços
-  const dupRes = await fetch(`${BASE}/api/public/appointments`, {
+  // 7. Testar bloqueio de duplicidade + proteção LGPD (PII não vaza se WhatsApp for diferente)
+  const dupDiffPhoneRes = await fetch(`${BASE}/api/public/appointments`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -183,15 +183,33 @@ async function run() {
       lgpdAccepted: true,
     }),
   });
-  assert.equal(dupRes.status, 200);
-  const dupJson = await dupRes.json();
+  assert.equal(dupDiffPhoneRes.status, 409, "Duplicidade com WhatsApp diferente deve retornar 409 sem vazar PII");
+  const dupDiffBody = await dupDiffPhoneRes.json();
+  assert.equal(dupDiffBody.appointment, undefined, "Não pode expor dados do agendamento para outro WhatsApp");
+
+  const dupSamePhoneRes = await fetch(`${BASE}/api/public/appointments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      patientName: "JOAO DA SILVA",
+      whatsapp: "(91) 99999-1111",
+      date: testDate1,
+      shift: "MORNING",
+      insuranceId: convenioOpt.id,
+      visitTypeId: visitTypeOpt.id,
+      kneeOptionId: kneeOpt.id,
+      lgpdAccepted: true,
+    }),
+  });
+  assert.equal(dupSamePhoneRes.status, 200);
+  const dupJson = await dupSamePhoneRes.json();
   assert.equal(dupJson.duplicate, true, "Deve identificar duplicidade");
   assert.equal(
     dupJson.appointment.protocol,
     book1.appointment.protocol,
-    "Deve retornar o mesmo protocolo existente"
+    "Deve retornar o mesmo protocolo existente quando WhatsApp coincide"
   );
-  console.log("✔ 6. Bloqueio de duplicidade (normalização acento/caixa/espaços) OK");
+  console.log("✔ 6. Bloqueio de duplicidade + proteção LGPD (PII protegido para WhatsApp diferente) OK");
 
   // 8. Disputa simultânea pela ÚLTIMA vaga (restam 1 de 2): Convênio vs Particular
   const [raceConvRes, racePartRes] = await Promise.all([
@@ -383,11 +401,17 @@ async function run() {
   JSON.parse(await tpl1.text());
   JSON.parse(await tpl2.text());
 
-  const docsRes = await fetch(`${BASE}/api/docs`);
+  // /api/docs deve exigir autenticação (admin ou API Key)
+  const docsUnauth = await fetch(`${BASE}/api/docs`);
+  assert.equal(docsUnauth.status, 401, "/api/docs não pode ser acessível sem autenticação");
+
+  const docsRes = await fetch(`${BASE}/api/docs`, {
+    headers: { "x-api-key": rawKey },
+  });
   assert.equal(docsRes.status, 200);
   const docsJson = await docsRes.json();
   assert.equal(docsJson.openapi, "3.0.3");
-  console.log("✔ 11. Relatórios (JSON + CSV), Templates n8n (.json) e OpenAPI (/api/docs) OK");
+  console.log("✔ 11. Relatórios (JSON + CSV), Templates n8n (.json) e OpenAPI protegido (/api/docs) OK");
 
   // 13. Validar Locais de Atendimento e Restrição de Convênios por Dia/Turno
   const optsRes = await fetch(`${BASE}/api/admin/form-options`, {
@@ -486,6 +510,50 @@ async function run() {
     `✔ 12. Personalização por Local + Convênio validada (${portoDias.name} exclusivo Unimed OK)`
   );
 
+  // 14. Validações extras de segurança: data no passado bloqueada + PATCH webhook mascara secret e bloqueia SSRF
+  const pastDateRes = await fetch(`${BASE}/api/public/appointments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      patientName: "Paciente Data Passada",
+      whatsapp: "(91) 99555-1111",
+      date: nextDateISO(-2),
+      shift: "MORNING",
+      insuranceId: unimedOpt.id,
+      visitTypeId: visitTypeOpt.id,
+      kneeOptionId: kneeOpt.id,
+      lgpdAccepted: true,
+    }),
+  });
+  assert.equal(pastDateRes.status, 400, "Data no passado deve ser bloqueada no servidor");
+
+  const patchWhRes = await fetch(`${BASE}/api/admin/webhooks`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify({
+      id: createdWebhook.id,
+      name: "E2E Webhook Atualizado",
+    }),
+  });
+  assert.equal(patchWhRes.status, 200);
+  const patchWhJson = await patchWhRes.json();
+  assert.equal(
+    patchWhJson.webhook.secret.includes(webhookSecret),
+    false,
+    "PATCH webhook NUNCA pode devolver secret em texto puro"
+  );
+
+  const ssrfPatchRes = await fetch(`${BASE}/api/admin/webhooks`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify({
+      id: createdWebhook.id,
+      url: "http://169.254.169.254/latest/meta-data/",
+    }),
+  });
+  assert.equal(ssrfPatchRes.status, 400, "PATCH webhook deve bloquear URLs de metadados (SSRF)");
+  console.log("✔ 13. Hardening validado (data passada 400, webhook PATCH mascara secret e bloqueia SSRF)");
+
   // Limpeza das datas/webhook temporários e encerramento do mock server
   for (const d of [testDate1, testDate2, testDate3]) {
     await clearTestDateAppointments(d);
@@ -504,7 +572,7 @@ async function run() {
   });
   whServer.close();
 
-  console.log("\n=== TODOS OS 12 TESTES E2E PASSARAM COM SUCESSO! ===");
+  console.log("\n=== TODOS OS 13 TESTES E2E PASSARAM COM SUCESSO! ===");
 }
 
 run().catch((err) => {

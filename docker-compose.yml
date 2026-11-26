@@ -5,10 +5,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
       POSTGRES_DB: ${POSTGRES_DB:-agendamento_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -30,13 +30,15 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agendamento_db}?schema=public"
-      JWT_SECRET: ${JWT_SECRET:-ortopedia-agendamento-jwt-secret-local-change-in-production-2026}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}@db:5432/${POSTGRES_DB:-agendamento_db}?schema=public"
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET forte (minimo 16 chars) no arquivo .env}
+      WEBHOOK_ENCRYPTION_KEY: ${WEBHOOK_ENCRYPTION_KEY:-}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@clinica.com.br}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD forte no arquivo .env}
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
-      RUN_SEED_ON_BOOT: "true"
+      RUN_SEED_ON_BOOT: "${RUN_SEED_ON_BOOT:-false}"
 
 volumes:
   pgdata:

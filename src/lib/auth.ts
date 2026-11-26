@@ -3,8 +3,10 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 import { prisma } from "./prisma";
+import { checkRateLimit, getClientIp } from "./rate-limit";
 
 export const SESSION_COOKIE_NAME = "agd_admin_session";
+export const SESSION_TTL_SECONDS = 60 * 60 * 24; // 24 horas
 const JWT_ISSUER = "agendamento-ortopedia";
 const JWT_AUDIENCE = "agendamento-admin";
 
@@ -36,7 +38,7 @@ export async function signSessionToken(payload: AdminSessionPayload): Promise<st
     .setIssuer(JWT_ISSUER)
     .setAudience(JWT_AUDIENCE)
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("24h")
     .sign(getJwtSecret());
 }
 
@@ -65,7 +67,25 @@ export async function getAdminSession(): Promise<AdminSessionPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
-  return verifySessionToken(token);
+  const session = await verifySessionToken(token);
+  if (!session) return null;
+
+  // Verifica no banco se o administrador permanece ativo (revogação imediata)
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, email: true, name: true, role: true, active: true },
+  });
+
+  if (!user || !user.active || user.role !== "ADMIN") {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  };
 }
 
 export async function requireAdmin(): Promise<AdminSessionPayload | null> {
@@ -89,6 +109,8 @@ export function generateNewApiKey(): {
 }
 
 export async function verifyApiKeyRequest(request: NextRequest) {
+  const ip = getClientIp(request);
+
   const headerKey = request.headers.get("x-api-key");
   const authHeader = request.headers.get("authorization");
   let rawKey = headerKey?.trim() || "";
@@ -99,12 +121,23 @@ export async function verifyApiKeyRequest(request: NextRequest) {
 
   if (!rawKey) return null;
 
+  // Limita tentativas de força bruta de API Key por IP
+  const invalidCheck = checkRateLimit(`v1-ip:${ip}`, 300, 60_000);
+  if (!invalidCheck.allowed) return null;
+
   const keyHash = hashApiKey(rawKey);
   const apiKey = await prisma.apiKey.findFirst({
     where: { keyHash, active: true },
   });
 
-  if (!apiKey) return null;
+  if (!apiKey) {
+    checkRateLimit(`v1-bad:${ip}`, 20, 60_000);
+    return null;
+  }
+
+  // Rate limit por API Key ativa (300 req/min)
+  const keyLimit = checkRateLimit(`v1-key:${apiKey.id}`, 300, 60_000);
+  if (!keyLimit.allowed) return null;
 
   // Atualiza lastUsedAt de forma não-bloqueante
   prisma.apiKey

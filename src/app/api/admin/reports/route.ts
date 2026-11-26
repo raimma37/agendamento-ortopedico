@@ -7,6 +7,7 @@ import {
   formatDateISO,
   formatWhatsappDisplay,
   getTodayISO,
+  isValidDateString,
   normalizePatientName,
   parseDateOnly,
   SHIFT_LABELS,
@@ -31,6 +32,18 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const startDate = sp.get("startDate") || getTodayISO();
   const endDate = sp.get("endDate") || startDate;
+  if (!isValidDateString(startDate) || !isValidDateString(endDate)) {
+    return NextResponse.json(
+      { error: "Informe startDate e endDate válidos no formato YYYY-MM-DD." },
+      { status: 400 }
+    );
+  }
+  if (endDate < startDate) {
+    return NextResponse.json(
+      { error: "A data final deve ser igual ou posterior à data inicial." },
+      { status: 400 }
+    );
+  }
   const shift = sp.get("shift") as Shift | null;
   const insuranceId = sp.get("insuranceId");
   const locationId = sp.get("locationId");
@@ -89,7 +102,8 @@ export async function GET(request: NextRequest) {
     const idList = idsParam
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter((s) => s.length > 0 && s.length <= 64)
+      .slice(0, 500);
     if (idList.length > 0) {
       where.id = { in: idList };
     }

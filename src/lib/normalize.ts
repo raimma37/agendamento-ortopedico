@@ -65,9 +65,20 @@ export function maskBrazilianPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+const PROTOCOL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/**
+ * Gera candidato de protocolo criptograficamente aleatório (32^6 > 1 bilhão de combinações).
+ * Usa alfabeto sem caracteres ambíguos (0/O/1/I).
+ */
 export function generateProtocolCandidate(): string {
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `AGD-${num}`;
+  const bytes = new Uint8Array(6);
+  globalThis.crypto.getRandomValues(bytes);
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += PROTOCOL_ALPHABET[bytes[i] % PROTOCOL_ALPHABET.length];
+  }
+  return `AGD-${code}`;
 }
 
 export function parseDateOnly(dateStr: string): Date {
@@ -76,6 +87,17 @@ export function parseDateOnly(dateStr: string): Date {
 
 export function formatDateISO(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Verifica se a string YYYY-MM-DD representa uma data real válida no calendário
+ * (rejeita datas impossíveis como 2026-02-31).
+ */
+export function isValidDateString(dateStr: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const d = parseDateOnly(dateStr);
+  if (Number.isNaN(d.getTime())) return false;
+  return formatDateISO(d) === dateStr;
 }
 
 export function formatDateBR(dateStr: string): string {

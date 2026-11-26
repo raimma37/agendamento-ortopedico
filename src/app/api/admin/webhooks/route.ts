@@ -2,14 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { webhookCreateSchema, webhookUpdateSchema } from "@/lib/validations";
-import { isAllowedWebhookUrl } from "@/lib/webhooks";
+import { assertSafeWebhookUrl } from "@/lib/webhooks";
+import { encryptSecret, maskSecretValue } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
-
-function maskSecret(secret: string): string {
-  if (secret.length <= 4) return "••••";
-  return `••••••${secret.slice(-4)}`;
-}
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -31,7 +27,7 @@ export async function GET() {
   return NextResponse.json({
     webhooks: webhooks.map((w) => ({
       ...w,
-      secret: maskSecret(w.secret),
+      secret: maskSecretValue(w.secret),
     })),
     logs,
   });
@@ -52,7 +48,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!isAllowedWebhookUrl(parsed.data.url)) {
+  if (!(await assertSafeWebhookUrl(parsed.data.url))) {
     return NextResponse.json(
       { error: "URL de webhook não permitida pela política de segurança (SSRF)." },
       { status: 400 }
@@ -60,11 +56,14 @@ export async function POST(request: NextRequest) {
   }
 
   const webhook = await prisma.webhookConfig.create({
-    data: parsed.data,
+    data: {
+      ...parsed.data,
+      secret: encryptSecret(parsed.data.secret),
+    },
   });
 
   return NextResponse.json(
-    { ok: true, webhook: { ...webhook, secret: maskSecret(webhook.secret) } },
+    { ok: true, webhook: { ...webhook, secret: maskSecretValue(webhook.secret) } },
     { status: 201 }
   );
 }
@@ -84,13 +83,35 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const { id, ...data } = parsed.data;
-  const webhook = await prisma.webhookConfig.update({
-    where: { id },
-    data,
-  });
+  const { id, secret, url, ...rest } = parsed.data;
 
-  return NextResponse.json({ ok: true, webhook });
+  if (url !== undefined && !(await assertSafeWebhookUrl(url))) {
+    return NextResponse.json(
+      { error: "URL de webhook não permitida pela política de segurança (SSRF)." },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const webhook = await prisma.webhookConfig.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(url !== undefined ? { url } : {}),
+        ...(secret !== undefined ? { secret: encryptSecret(secret) } : {}),
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      webhook: { ...webhook, secret: maskSecretValue(webhook.secret) },
+    });
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === "P2025") {
+      return NextResponse.json({ error: "Webhook não encontrado" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "Erro ao atualizar webhook" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: NextRequest) {
@@ -104,6 +125,13 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Informe ?id=" }, { status: 400 });
   }
 
-  await prisma.webhookConfig.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  try {
+    await prisma.webhookConfig.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === "P2025") {
+      return NextResponse.json({ error: "Webhook não encontrado" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "Erro ao excluir webhook" }, { status: 500 });
+  }
 }

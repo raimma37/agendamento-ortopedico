@@ -2,13 +2,17 @@ import { NextResponse, type NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations";
-import { SESSION_COOKIE_NAME, signSessionToken } from "@/lib/auth";
+import {
+  SESSION_COOKIE_NAME,
+  SESSION_TTL_SECONDS,
+  signSessionToken,
+} from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`login:${ip}`, 10, 60_000);
+    const rl = checkRateLimit(`login:ip:${ip}`, 10, 60_000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Muitas tentativas de login. Aguarde um minuto." },
@@ -25,8 +29,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedEmail = parsed.data.email.toLowerCase().trim();
+    const emailRl = checkRateLimit(`login:email:${normalizedEmail}`, 8, 5 * 60_000);
+    if (!emailRl.allowed) {
+      return NextResponse.json(
+        { error: "Muitas tentativas para esta conta. Aguarde alguns minutos." },
+        { status: 429, headers: { "Retry-After": String(emailRl.retryAfterSec) } }
+      );
+    }
+
     const user = await prisma.user.findUnique({
-      where: { email: parsed.data.email.toLowerCase().trim() },
+      where: { email: normalizedEmail },
     });
 
     if (!user || !user.active) {
@@ -65,7 +78,7 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: SESSION_TTL_SECONDS,
     });
 
     return res;

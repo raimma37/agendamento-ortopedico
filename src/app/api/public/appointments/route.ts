@@ -98,6 +98,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (result.outcome === "DUPLICATE") {
+      // Proteção LGPD: só retorna detalhes/comprovante se o WhatsApp informado coincidir
+      if (!result.whatsappMatched) {
+        return NextResponse.json(
+          {
+            error:
+              "Já existe um agendamento ativo registrado para este nome nesta data. Caso precise do comprovante, aguarde a confirmação no WhatsApp cadastrado ou entre em contato com a recepção.",
+          },
+          { status: 409 }
+        );
+      }
+
       return NextResponse.json(
         {
           duplicate: true,

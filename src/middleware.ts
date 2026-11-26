@@ -7,7 +7,7 @@ const JWT_AUDIENCE = "agendamento-admin";
 
 function getSecretBytes(): Uint8Array | null {
   const secret = process.env.JWT_SECRET;
-  if (!secret) {
+  if (!secret || secret.length < 16) {
     if (process.env.NODE_ENV === "production") return null;
     return new TextEncoder().encode(
       "ortopedia-agendamento-jwt-secret-local-change-in-production-2026"

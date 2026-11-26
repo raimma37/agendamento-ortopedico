@@ -72,10 +72,17 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Informe ?id=" }, { status: 400 });
   }
 
-  await prisma.apiKey.update({
-    where: { id },
-    data: { active: false },
-  });
+  try {
+    await prisma.apiKey.update({
+      where: { id },
+      data: { active: false },
+    });
 
-  return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true });
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === "P2025") {
+      return NextResponse.json({ error: "API Key não encontrada" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "Erro ao revogar API Key" }, { status: 500 });
+  }
 }

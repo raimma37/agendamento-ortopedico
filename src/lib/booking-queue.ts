@@ -1,7 +1,10 @@
 import { Prisma, type Shift } from "@prisma/client";
 import { prisma } from "./prisma";
 import {
+  addDaysISO,
   generateProtocolCandidate,
+  getTodayISO,
+  isValidDateString,
   normalizePatientName,
   normalizeWhatsappE164,
   parseDateOnly,
@@ -28,6 +31,7 @@ export type BookAppointmentResult =
   | {
       outcome: "DUPLICATE";
       appointment: AppointmentWithRelations;
+      whatsappMatched: boolean;
       message: string;
     }
   | {
@@ -76,6 +80,24 @@ async function executeAtomicBooking(
     return { outcome: "INVALID", error: "Número de WhatsApp inválido." };
   }
 
+  if (!isValidDateString(input.date)) {
+    return { outcome: "INVALID", error: "Data de agendamento inválida." };
+  }
+
+  // Validar janela de agendamento no servidor (não permite datas no passado ou além de bookingWindowDays)
+  const today = getTodayISO();
+  const clinicSettings = await prisma.clinicSettings.findUnique({
+    where: { id: 1 },
+    select: { bookingWindowDays: true },
+  });
+  const maxDate = addDaysISO(today, clinicSettings?.bookingWindowDays ?? 30);
+  if (input.date < today || input.date > maxDate) {
+    return {
+      outcome: "INVALID",
+      error: "A data selecionada está fora do período disponível para agendamento.",
+    };
+  }
+
   const dateObj = parseDateOnly(input.date);
 
   const MAX_RETRIES = 3;
@@ -102,6 +124,7 @@ async function executeAtomicBooking(
             return {
               outcome: "DUPLICATE",
               appointment: existing,
+              whatsappMatched: existing.whatsapp === normalizedWhatsapp,
               message:
                 "Já existe um agendamento ativo para este paciente nesta data.",
             };

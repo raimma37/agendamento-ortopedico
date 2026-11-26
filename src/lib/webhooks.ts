@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import dns from "node:dns/promises";
+import net from "node:net";
 import type {
   Appointment,
   InsuranceOption,
@@ -8,6 +10,7 @@ import type {
 } from "@prisma/client";
 import { prisma } from "./prisma";
 import { formatDateISO, SHIFT_LABELS, STATUS_LABELS } from "./normalize";
+import { decryptSecret } from "./crypto";
 
 export type WebhookEventType =
   | "appointment.created"
@@ -20,6 +23,8 @@ export type AppointmentWithRelations = Appointment & {
   kneeOption: Pick<KneeOption, "id" | "name">;
   location?: Pick<LocationOption, "id" | "name" | "address"> | null;
 };
+
+const WEBHOOK_LOG_RETENTION_DAYS = 30;
 
 export function buildWebhookPayload(
   event: WebhookEventType,
@@ -51,8 +56,72 @@ export function buildWebhookPayload(
   };
 }
 
+/**
+ * Reduz exposição de PII (LGPD) ao persistir payloads em WebhookLog.
+ * O disparo HTTP continua enviando o payload completo necessário ao n8n.
+ */
+function redactPayloadForLog(payload: Record<string, unknown>): Record<string, unknown> {
+  const data = payload.data;
+  if (!data || typeof data !== "object") return payload;
+  const copy = { ...(data as Record<string, unknown>) };
+  if (typeof copy.whatsapp === "string" && copy.whatsapp.length >= 4) {
+    copy.whatsapp = `***${copy.whatsapp.slice(-4)}`;
+  }
+  return { ...payload, data: copy };
+}
+
 export function signWebhookBody(body: string, secret: string): string {
   return crypto.createHmac("sha256", secret).update(body).digest("hex");
+}
+
+function isPrivateOrReservedIpv4(ip: string): boolean {
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) {
+    return true;
+  }
+  const [a, b] = parts;
+  if (a === 0) return true; // 0.0.0.0/8
+  if (a === 10) return true; // 10.0.0.0/8
+  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 (CGNAT)
+  if (a === 127) return true; // 127.0.0.0/8 (loopback)
+  if (a === 169 && b === 254) return true; // 169.254.0.0/16 (link-local / cloud metadata)
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+  if (a === 192 && b === 0) return true; // 192.0.0.0/16 reserved
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16
+  if (a === 198 && (b === 18 || b === 19)) return true; // benchmark
+  if (a >= 224) return true; // multicast & reserved
+  return false;
+}
+
+export function isPrivateOrReservedIp(rawIp: string): boolean {
+  const ip = rawIp.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  const version = net.isIP(ip);
+  if (version === 4) {
+    return isPrivateOrReservedIpv4(ip);
+  }
+  if (version === 6) {
+    if (ip === "::" || ip === "::1") return true;
+    // IPv4-mapped IPv6 (ex: ::ffff:127.0.0.1 ou ::ffff:7f00:1)
+    if (ip.startsWith("::ffff:")) {
+      const mapped = ip.slice(7);
+      if (net.isIP(mapped) === 4) return isPrivateOrReservedIpv4(mapped);
+      return true;
+    }
+    // ULA (fc00::/7), link-local (fe80::/10), multicast (ff00::/8)
+    if (
+      ip.startsWith("fc") ||
+      ip.startsWith("fd") ||
+      ip.startsWith("fe8") ||
+      ip.startsWith("fe9") ||
+      ip.startsWith("fea") ||
+      ip.startsWith("feb") ||
+      ip.startsWith("ff")
+    ) {
+      return true;
+    }
+    return false;
+  }
+  return true;
 }
 
 export function isAllowedWebhookUrl(rawUrl: string): boolean {
@@ -62,9 +131,14 @@ export function isAllowedWebhookUrl(rawUrl: string): boolean {
       return false;
     }
 
-    const host = parsed.hostname.toLowerCase();
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
     // Sempre bloqueia endereços de metadados cloud (AWS/GCP/Azure link-local)
-    if (host.startsWith("169.254.") || host === "metadata.google.internal") {
+    if (
+      host.startsWith("169.254.") ||
+      host === "metadata.google.internal" ||
+      host === "metadata" ||
+      host === "fd00:ec2::254"
+    ) {
       return false;
     }
 
@@ -76,13 +150,13 @@ export function isAllowedWebhookUrl(rawUrl: string): boolean {
       if (parsed.protocol !== "https:") return false;
       if (
         host === "localhost" ||
-        host === "::1" ||
-        host === "0.0.0.0" ||
-        host.startsWith("127.") ||
-        host.startsWith("10.") ||
-        host.startsWith("192.168.") ||
-        /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+        host.endsWith(".localhost") ||
+        host.endsWith(".local") ||
+        host.endsWith(".internal")
       ) {
+        return false;
+      }
+      if (net.isIP(host) !== 0 && isPrivateOrReservedIp(host)) {
         return false;
       }
     }
@@ -93,24 +167,65 @@ export function isAllowedWebhookUrl(rawUrl: string): boolean {
   }
 }
 
+/**
+ * Validação assíncrona anti-SSRF incluindo resolução DNS para impedir
+ * DNS rebinding e redirecionamento para IPs privados (IPv4/IPv6).
+ */
+export async function assertSafeWebhookUrl(rawUrl: string): Promise<boolean> {
+  if (!isAllowedWebhookUrl(rawUrl)) return false;
+
+  const allowPrivate =
+    process.env.ALLOW_PRIVATE_WEBHOOKS === "true" ||
+    process.env.NODE_ENV !== "production";
+  if (allowPrivate) return true;
+
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (net.isIP(host) !== 0) {
+      return !isPrivateOrReservedIp(host);
+    }
+
+    const records = await dns.lookup(host, { all: true, verbatim: true });
+    if (!records || records.length === 0) return false;
+    return records.every((rec) => !isPrivateOrReservedIp(rec.address));
+  } catch {
+    return false;
+  }
+}
+
+async function pruneOldWebhookLogs(): Promise<void> {
+  const cutoff = new Date(
+    Date.now() - WEBHOOK_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000
+  );
+  await prisma.webhookLog
+    .deleteMany({
+      where: { createdAt: { lt: cutoff } },
+    })
+    .catch(() => {});
+}
+
 async function sendToWebhookConfig(
   config: { id: string; url: string; secret: string },
   event: string,
   payload: Record<string, unknown>
 ) {
   const body = JSON.stringify(payload);
-  const signature = signWebhookBody(body, config.secret);
+  const plainSecret = decryptSecret(config.secret);
+  const signature = signWebhookBody(body, plainSecret);
+  const logPayload = redactPayloadForLog(payload);
 
   let statusCode: number | null = null;
   let responseBody = "";
   let success = false;
 
-  if (!isAllowedWebhookUrl(config.url)) {
+  const isSafe = await assertSafeWebhookUrl(config.url);
+  if (!isSafe) {
     return prisma.webhookLog.create({
       data: {
         webhookId: config.id,
         event,
-        payload: payload as object,
+        payload: logPayload as object,
         statusCode: null,
         responseBody: "URL bloqueada pela política de segurança (SSRF).",
         success: false,
@@ -147,7 +262,7 @@ async function sendToWebhookConfig(
     data: {
       webhookId: config.id,
       event,
-      payload: payload as object,
+      payload: logPayload as object,
       statusCode,
       responseBody,
       success,
@@ -173,9 +288,10 @@ export function dispatchWebhookEvent(
         },
       });
 
-      await Promise.allSettled(
-        configs.map((cfg) => sendToWebhookConfig(cfg, event, payload))
-      );
+      await Promise.allSettled([
+        ...configs.map((cfg) => sendToWebhookConfig(cfg, event, payload)),
+        pruneOldWebhookLogs(),
+      ]);
     } catch (err) {
       console.error("[webhooks] erro ao disparar evento", event, err);
     }

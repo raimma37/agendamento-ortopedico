@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { normalizeWhatsappE164 } from "./normalize";
+import { isValidDateString, normalizeWhatsappE164 } from "./normalize";
 
 export const shiftEnum = z.enum(["MORNING", "AFTERNOON", "FULL_DAY"]);
 export const statusEnum = z.enum([
@@ -13,7 +13,8 @@ export const statusEnum = z.enum([
 
 export const dateStringSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve estar no formato YYYY-MM-DD");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve estar no formato YYYY-MM-DD")
+  .refine((val) => isValidDateString(val), "Data inválida no calendário");
 
 export const createAppointmentSchema = z.object({
   patientName: z
@@ -59,12 +60,12 @@ export const weeklyQuotaItemSchema = z.object({
   maxSlots: z.number().int().min(0).max(200),
   privateReserveSlots: z.number().int().min(0).max(200).default(0),
   active: z.boolean(),
-  locationId: z.string().nullable().optional(),
-  allowedInsuranceIds: z.array(z.string()).optional().default([]),
+  locationId: z.string().max(64).nullable().optional(),
+  allowedInsuranceIds: z.array(z.string().max(64)).max(100).optional().default([]),
 });
 
 export const updateWeeklyQuotasSchema = z.object({
-  quotas: z.array(weeklyQuotaItemSchema).min(1),
+  quotas: z.array(weeklyQuotaItemSchema).min(1).max(21),
 });
 
 export const dateExceptionUpsertSchema = z.object({
@@ -77,10 +78,11 @@ export const dateExceptionUpsertSchema = z.object({
         shift: shiftEnum,
         maxSlots: z.number().int().min(0).max(200),
         privateReserveSlots: z.number().int().min(0).max(200).default(0),
-        locationId: z.string().nullable().optional(),
-        allowedInsuranceIds: z.array(z.string()).optional().default([]),
+        locationId: z.string().max(64).nullable().optional(),
+        allowedInsuranceIds: z.array(z.string().max(64)).max(100).optional().default([]),
       })
     )
+    .max(3)
     .optional(),
 });
 
@@ -120,7 +122,8 @@ export const webhookCreateSchema = z.object({
   secret: z.string().trim().min(6, "Secret deve ter no mínimo 6 caracteres").max(120),
   events: z
     .array(z.enum(["appointment.created", "appointment.confirmed", "appointment.canceled"]))
-    .min(1, "Selecione pelo menos um evento"),
+    .min(1, "Selecione pelo menos um evento")
+    .max(10),
   active: z.boolean().optional().default(true),
 });
 
