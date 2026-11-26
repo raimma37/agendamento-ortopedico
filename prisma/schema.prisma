@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  FULL_DAY
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELED
+  NO_SHOW
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("ADMIN")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ClinicSettings {
+  id                   Int      @id @default(1)
+  clinicName           String   @default("Clínica Ortopédica — Especialidade em Joelho")
+  bookingWindowDays    Int      @default(30)
+  showRemainingSlots   Boolean  @default(true)
+  protocolInstructions String   @default("Atendimento por ordem de chegada dentro do turno escolhido. Chegue com 15 minutos de antecedência levando documento com foto, carteirinha do convênio (se aplicável) e exames recentes do joelho.")
+  updatedAt            DateTime @updatedAt
+}
+
+model WeeklyQuota {
+  id                  String   @id @default(cuid())
+  dayOfWeek           Int      // 0 = Domingo ... 6 = Sábado
+  shift               Shift
+  maxSlots            Int      @default(10)
+  privateReserveSlots Int      @default(0)
+  active              Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([dayOfWeek, shift])
+  @@index([dayOfWeek, active])
+}
+
+model DateException {
+  id                  String   @id @default(cuid())
+  date                DateTime @db.Date
+  shift               Shift
+  maxSlots            Int      @default(0)
+  privateReserveSlots Int      @default(0)
+  isBlocked           Boolean  @default(false)
+  reason              String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([date, shift])
+  @@index([date])
+}
+
+model InsuranceOption {
+  id                String        @id @default(cuid())
+  name              String        @unique
+  isPrivatePriority Boolean       @default(false)
+  active            Boolean       @default(true)
+  sortOrder         Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  appointments      Appointment[]
+}
+
+model VisitTypeOption {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  active       Boolean       @default(true)
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+}
+
+model KneeOption {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  active       Boolean       @default(true)
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+}
+
+model Appointment {
+  id                    String            @id @default(cuid())
+  protocol              String            @unique
+  patientName           String
+  patientNameNormalized String
+  whatsapp              String
+  date                  DateTime          @db.Date
+  shift                 Shift
+  insuranceId           String
+  visitTypeId           String
+  kneeOptionId          String
+  status                AppointmentStatus @default(PENDING)
+  lgpdAccepted          Boolean           @default(true)
+  cancelReason          String?
+  confirmedAt           DateTime?
+  confirmedVia          String?
+  checkedInAt           DateTime?
+  completedAt           DateTime?
+  canceledAt            DateTime?
+  notes                 String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  insurance  InsuranceOption @relation(fields: [insuranceId], references: [id])
+  visitType  VisitTypeOption @relation(fields: [visitTypeId], references: [id])
+  kneeOption KneeOption      @relation(fields: [kneeOptionId], references: [id])
+
+  @@index([date, shift, status])
+  @@index([patientNameNormalized, date, status])
+  @@index([whatsapp, date, status])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  keyHash    String    @unique
+  prefix     String
+  lastUsedAt DateTime?
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+}
+
+model WebhookConfig {
+  id        String       @id @default(cuid())
+  name      String       @default("Webhook n8n")
+  url       String
+  secret    String
+  events    String[]
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  logs      WebhookLog[]
+}
+
+model WebhookLog {
+  id           String        @id @default(cuid())
+  webhookId    String
+  event        String
+  payload      Json
+  statusCode   Int?
+  responseBody String?
+  success      Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+
+  webhook WebhookConfig @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+  @@index([createdAt])
+}

@@ -1,0 +1,250 @@
+{
+  "name": "Fluxo 2 - Processamento de Resposta WhatsApp (Confirmar/Cancelar)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-resposta-consulta",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook WhatsApp (Entrada)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliza o telefone remetente (padrão E.164 apenas dígitos) e extrai o texto da mensagem\n// Compatível com Evolution API e WhatsApp Cloud API\nconst body = $input.first().json.body || $input.first().json;\n\nconst rawPhone =\n  body?.data?.key?.remoteJid ||\n  body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from ||\n  body?.phone ||\n  body?.from ||\n  '';\n\nconst rawText =\n  body?.data?.message?.conversation ||\n  body?.data?.message?.extendedTextMessage?.text ||\n  body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body ||\n  body?.text ||\n  body?.message ||\n  '';\n\nlet whatsapp = String(rawPhone).replace(/@.*$/, '').replace(/\\D/g, '');\nif (whatsapp.length === 10 || whatsapp.length === 11) {\n  whatsapp = '55' + whatsapp;\n}\n\nconst textNormalized = String(rawText)\n  .trim()\n  .toLowerCase()\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '');\n\nlet intent = 'OTHER';\nif (['1', 'sim', 'confirmar', 'confirmo', 'ok'].includes(textNormalized)) {\n  intent = 'CONFIRM';\n} else if (['2', 'nao', 'cancelar', 'cancelo'].includes(textNormalized)) {\n  intent = 'CANCEL';\n}\n\nreturn [{\n  json: {\n    whatsapp,\n    rawText,\n    textNormalized,\n    intent,\n    apiBaseUrl: 'http://localhost:3000',\n    apiKey: 'COLE_SUA_API_KEY_AQUI',\n    whatsappApiUrl: 'https://sua-evolution-api.com/message/sendText/SUA_INSTANCIA',\n    whatsappApiKey: 'COLE_SUA_EVOLUTION_API_KEY_AQUI'\n  }\n}];"
+      },
+      "id": "node-normalize",
+      "name": "Normalizar Telefone e Intenção",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.apiBaseUrl }}/api/v1/appointments/by-phone/{{ $json.whatsapp }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $json.apiKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-lookup",
+      "name": "Buscar Próximo Agendamento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 320]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Normalizar Telefone e Intenção').item.json.intent }}",
+                    "rightValue": "CONFIRM",
+                    "operator": { "type": "string", "operation": "equals" }
+                  },
+                  {
+                    "leftValue": "={{ $json.appointments?.length || 0 }}",
+                    "rightValue": 0,
+                    "operator": { "type": "number", "operation": "gt" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Confirmar (1)"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Normalizar Telefone e Intenção').item.json.intent }}",
+                    "rightValue": "CANCEL",
+                    "operator": { "type": "string", "operation": "equals" }
+                  },
+                  {
+                    "leftValue": "={{ $json.appointments?.length || 0 }}",
+                    "rightValue": 0,
+                    "operator": { "type": "number", "operation": "gt" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cancelar (2)"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "node-switch",
+      "name": "Avaliar Resposta (1 / 2 / Outro)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [920, 320]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Normalizar Telefone e Intenção').item.json.apiBaseUrl }}/api/v1/appointments/{{ $json.appointments[0].id }}/confirm",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Normalizar Telefone e Intenção').item.json.apiKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-api-confirm",
+      "name": "API Confirmar Consulta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Normalizar Telefone e Intenção').item.json.whatsappApiUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Normalizar Telefone e Intenção').item.json.whatsappApiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Normalizar Telefone e Intenção').item.json.whatsapp }}\",\n  \"text\": \"✅ Consulta *CONFIRMADA* com sucesso!\\n\\nAguardamos você no turno *{{ $json.appointment.shiftLabel }}* do dia *{{ $json.appointment.dateBR }}*.\\nProtocolo: *{{ $json.appointment.protocol }}*.\"\n}",
+        "options": {}
+      },
+      "id": "node-reply-confirmed",
+      "name": "Responder: Confirmado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1420, 160]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Normalizar Telefone e Intenção').item.json.apiBaseUrl }}/api/v1/appointments/{{ $json.appointments[0].id }}/cancel",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Normalizar Telefone e Intenção').item.json.apiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"reason\": \"Cancelado pelo paciente via WhatsApp\"\n}",
+        "options": {}
+      },
+      "id": "node-api-cancel",
+      "name": "API Cancelar Consulta (Devolver Vaga)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Normalizar Telefone e Intenção').item.json.whatsappApiUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Normalizar Telefone e Intenção').item.json.whatsappApiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Normalizar Telefone e Intenção').item.json.whatsapp }}\",\n  \"text\": \"❌ Sua consulta (Protocolo *{{ $json.appointment.protocol }}*) foi *CANCELADA* e a vaga foi liberada.\\n\\nQuando desejar reagendar, basta acessar novamente o link de agendamento.\"\n}",
+        "options": {}
+      },
+      "id": "node-reply-canceled",
+      "name": "Responder: Cancelado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1420, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Normalizar Telefone e Intenção').item.json.whatsappApiUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Normalizar Telefone e Intenção').item.json.whatsappApiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Normalizar Telefone e Intenção').item.json.whatsapp }}\",\n  \"text\": \"Não entendemos sua resposta. Por favor, responda apenas com:\\n*1* para CONFIRMAR sua consulta ✅\\n*2* para CANCELAR ❌\"\n}",
+        "options": {}
+      },
+      "id": "node-reply-invalid",
+      "name": "Responder: Orientar 1 ou 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 480]
+    }
+  ],
+  "connections": {
+    "Webhook WhatsApp (Entrada)": {
+      "main": [[{ "node": "Normalizar Telefone e Intenção", "type": "main", "index": 0 }]]
+    },
+    "Normalizar Telefone e Intenção": {
+      "main": [[{ "node": "Buscar Próximo Agendamento", "type": "main", "index": 0 }]]
+    },
+    "Buscar Próximo Agendamento": {
+      "main": [[{ "node": "Avaliar Resposta (1 / 2 / Outro)", "type": "main", "index": 0 }]]
+    },
+    "Avaliar Resposta (1 / 2 / Outro)": {
+      "main": [
+        [{ "node": "API Confirmar Consulta", "type": "main", "index": 0 }],
+        [{ "node": "API Cancelar Consulta (Devolver Vaga)", "type": "main", "index": 0 }],
+        [{ "node": "Responder: Orientar 1 ou 2", "type": "main", "index": 0 }]
+      ]
+    },
+    "API Confirmar Consulta": {
+      "main": [[{ "node": "Responder: Confirmado", "type": "main", "index": 0 }]]
+    },
+    "API Cancelar Consulta (Devolver Vaga)": {
+      "main": [[{ "node": "Responder: Cancelado", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

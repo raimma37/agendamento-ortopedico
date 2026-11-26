@@ -1,0 +1,162 @@
+{
+  "name": "Fluxo 1 - Lembrete Automático Diário (Ortopedia)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "Disparo Diário (08:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-base-url",
+              "name": "apiBaseUrl",
+              "value": "http://localhost:3000",
+              "type": "string"
+            },
+            {
+              "id": "assign-api-key",
+              "name": "apiKey",
+              "value": "COLE_SUA_API_KEY_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "assign-evolution-url",
+              "name": "whatsappApiUrl",
+              "value": "https://sua-evolution-api.com/message/sendText/SUA_INSTANCIA",
+              "type": "string"
+            },
+            {
+              "id": "assign-evolution-key",
+              "name": "whatsappApiKey",
+              "value": "COLE_SUA_EVOLUTION_API_KEY_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "assign-tomorrow",
+              "name": "tomorrowDate",
+              "value": "={{ $now.plus({ days: 1 }).toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "node-config",
+      "name": "Configurações & Data de Amanhã",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.apiBaseUrl }}/api/v1/appointments?date={{ $json.tomorrowDate }}&status=PENDING",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $json.apiKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-fetch-appointments",
+      "name": "Buscar Agendamentos Pendentes de Amanhã",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "appointments",
+        "options": {}
+      },
+      "id": "node-split-appointments",
+      "name": "Separar Agendamentos",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "node-loop",
+      "name": "Loop por Paciente",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configurações & Data de Amanhã').item.json.whatsappApiUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Configurações & Data de Amanhã').item.json.whatsappApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.whatsapp }}\",\n  \"text\": \"Olá, *{{ $json.patientName }}*! 👋\\n\\nPassando para lembrar da sua consulta ortopédica agendada para amanhã:\\n\\n📅 *Data:* {{ $json.dateBR }}\\n⏰ *Turno:* {{ $json.shiftLabel }} (ordem de chegada)\\n🩺 *Tipo:* {{ $json.visitType }}\\n🦵 *Avaliação:* {{ $json.kneeOption }}\\n📋 *Protocolo:* {{ $json.protocol }}\\n\\nPor favor, confirme sua presença respondendo:\\n*1* para CONFIRMAR ✅\\n*2* para CANCELAR ❌\"\n}",
+        "options": {}
+      },
+      "id": "node-send-whatsapp",
+      "name": "Enviar Lembrete WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1360, 300]
+    }
+  ],
+  "connections": {
+    "Disparo Diário (08:00)": {
+      "main": [[{ "node": "Configurações & Data de Amanhã", "type": "main", "index": 0 }]]
+    },
+    "Configurações & Data de Amanhã": {
+      "main": [[{ "node": "Buscar Agendamentos Pendentes de Amanhã", "type": "main", "index": 0 }]]
+    },
+    "Buscar Agendamentos Pendentes de Amanhã": {
+      "main": [[{ "node": "Separar Agendamentos", "type": "main", "index": 0 }]]
+    },
+    "Separar Agendamentos": {
+      "main": [[{ "node": "Loop por Paciente", "type": "main", "index": 0 }]]
+    },
+    "Loop por Paciente": {
+      "main": [[], [{ "node": "Enviar Lembrete WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Enviar Lembrete WhatsApp": {
+      "main": [[{ "node": "Loop por Paciente", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
