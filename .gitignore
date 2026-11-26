@@ -4,6 +4,7 @@ out/
 .pgdata/
 backups/
 .env
+.env.*
 !.env.example
 *.log
 .DS_Store
