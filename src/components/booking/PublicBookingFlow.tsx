@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Download,
   Info,
   Loader2,
   Lock,
@@ -24,6 +25,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { formatDateBR, maskBrazilianPhone } from "@/lib/normalize";
+import { downloadAppointmentReceiptPdf } from "@/lib/receipt-pdf";
 
 interface LocationInfo {
   id: string;
@@ -147,6 +149,29 @@ export default function PublicBookingFlow() {
     message?: string;
     appointment: BookedAppointment;
   } | null>(null);
+  const [pdfDownloaded, setPdfDownloaded] = useState(false);
+
+  function handleDownloadPdf() {
+    if (!result || !data) return;
+    downloadAppointmentReceiptPdf({
+      clinicName: data.settings.clinicName,
+      protocol: result.appointment.protocol,
+      patientName: result.appointment.patientName,
+      whatsappDisplay: result.appointment.whatsappDisplay,
+      dateBR: result.appointment.dateBR,
+      weekdayLabel: getWeekdayLabel(result.appointment.date),
+      shiftLabel: result.appointment.shiftLabel,
+      location: result.appointment.location,
+      locationAddress: result.appointment.locationAddress,
+      insurance: result.appointment.insurance,
+      visitType: result.appointment.visitType,
+      kneeOption: result.appointment.kneeOption,
+      statusLabel: result.appointment.statusLabel,
+      protocolInstructions: data.settings.protocolInstructions,
+    });
+    setPdfDownloaded(true);
+    setTimeout(() => setPdfDownloaded(false), 3000);
+  }
 
   async function fetchBootstrap(filterInsuranceId?: string, initial = false) {
     if (initial) {
@@ -976,7 +1001,8 @@ export default function PublicBookingFlow() {
                     : "Agendamento Realizado!"}
                 </h2>
                 <p className="text-xs text-violet-100 mt-1">
-                  Tire um print desta tela para apresentar na recepção
+                  Baixe o comprovante em PDF ou tire um print desta tela para apresentar
+                  na recepção
                 </p>
 
                 <div className="mt-4 inline-block bg-[#12102b]/90 border border-white/20 text-white rounded-2xl px-6 py-2.5 shadow-lg">
@@ -1078,13 +1104,33 @@ export default function PublicBookingFlow() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={resetBooking}
-              className="w-full min-h-[50px] rounded-xl border border-[#343069] bg-[#1b183d] text-white font-semibold hover:border-[#8b6dff] transition-colors"
-            >
-              Fazer outro agendamento
-            </button>
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                className="w-full min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] via-[#6e52ff] to-[#3b82f6] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/35 hover:brightness-110 transition-all"
+              >
+                {pdfDownloaded ? (
+                  <>
+                    <CheckCircle2 className="h-5 w-5" />
+                    Comprovante PDF baixado!
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-5 w-5" />
+                    Baixar Comprovante em PDF
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={resetBooking}
+                className="w-full min-h-[50px] rounded-xl border border-[#343069] bg-[#1b183d] text-white font-semibold hover:border-[#8b6dff] transition-colors"
+              >
+                Fazer outro agendamento
+              </button>
+            </div>
           </div>
         )}
       </main>
