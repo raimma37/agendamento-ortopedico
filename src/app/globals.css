@@ -5,6 +5,9 @@
   body {
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
+    background-color: #12102b;
+    color: #f1f0ff;
+    color-scheme: dark;
   }
 
   input,
@@ -12,21 +15,29 @@
   textarea {
     font-size: 16px;
   }
+
+  /* Custom subtle dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #141230;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #302d63;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4b4594;
+  }
 }
 
-/* Regras de Impressão A4 para Relatórios Diários */
+/* Regras de Impressão A4 para Relatórios Diários (Sempre econômico P&B no papel) */
 @media print {
   @page {
     size: A4 portrait;
     margin: 10mm;
-  }
-
-  html,
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-size: 11pt !important;
-    overflow: visible !important;
   }
 
   @page landscape {
@@ -36,6 +47,15 @@
 
   .print-landscape {
     page: landscape;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    color-scheme: light !important;
+    font-size: 11pt !important;
+    overflow: visible !important;
   }
 
   table {

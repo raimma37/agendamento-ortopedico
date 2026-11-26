@@ -105,27 +105,27 @@ function ReportsContent() {
       <div className="print:hidden space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              Relatórios & Impressão Diária
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Relatórios &amp; Impressão Diária
             </h1>
-            <p className="text-sm text-slate-500">
-              Layout A4 de alto contraste pronto para prancheta da recepção e médico
+            <p className="text-sm text-[#9c99c4]">
+              Folha A4 em alto contraste P&amp;B pronta para prancheta da recepção e médico
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={handleExportCsv}
-              className="h-10 px-4 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 flex items-center gap-2 text-sm font-semibold"
+              className="h-10 px-4 rounded-xl border border-[#332f6b] bg-[#1b183d] text-[#e3e1fa] hover:border-[#8b6dff] flex items-center gap-2 text-sm font-semibold transition-colors"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 text-[#957bff]" />
               Exportar CSV / Excel
             </button>
             <button
               type="button"
               onClick={handlePrint}
-              className="h-10 px-4 rounded-xl bg-teal-600 text-white hover:bg-teal-700 flex items-center gap-2 text-sm font-semibold shadow-xs"
+              className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white hover:brightness-110 flex items-center gap-2 text-sm font-bold shadow-lg shadow-violet-600/30 transition-all"
             >
               <Printer className="h-4 w-4" />
               Imprimir / Salvar PDF (A4)
@@ -133,9 +133,9 @@ function ReportsContent() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+        <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end shadow-lg shadow-black/20">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
+            <label className="block text-xs font-semibold text-[#9c99c4] mb-1">
               Data inicial
             </label>
             <input
@@ -145,30 +145,30 @@ function ReportsContent() {
                 setStartDate(e.target.value);
                 if (e.target.value > endDate) setEndDate(e.target.value);
               }}
-              className="w-full h-10 px-3 rounded-xl border border-slate-300 text-sm"
+              className="w-full h-10 px-3 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
+            <label className="block text-xs font-semibold text-[#9c99c4] mb-1">
               Data final
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-300 text-sm"
+              className="w-full h-10 px-3 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
+            <label className="block text-xs font-semibold text-[#9c99c4] mb-1">
               Turno
             </label>
             <select
               value={shift}
               onChange={(e) => setShift(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-300 text-sm bg-white"
+              className="w-full h-10 px-3 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
             >
               <option value="">Todos</option>
               <option value="MORNING">Manhã</option>
@@ -178,13 +178,13 @@ function ReportsContent() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
+            <label className="block text-xs font-semibold text-[#9c99c4] mb-1">
               Convênio / Particular
             </label>
             <select
               value={insuranceId}
               onChange={(e) => setInsuranceId(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-300 text-sm bg-white"
+              className="w-full h-10 px-3 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
             >
               <option value="">Todos</option>
               {report?.insurances.map((i) => (
@@ -196,13 +196,13 @@ function ReportsContent() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
+            <label className="block text-xs font-semibold text-[#9c99c4] mb-1">
               Status
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-300 text-sm bg-white"
+              className="w-full h-10 px-3 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
             >
               <option value="">Todos (conforme opção)</option>
               <option value="PENDING">Pendente</option>
@@ -215,21 +215,21 @@ function ReportsContent() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs font-medium text-[#d5d3f5] cursor-pointer">
               <input
                 type="checkbox"
                 checked={hideCanceled}
                 onChange={(e) => setHideCanceled(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-teal-600"
+                className="h-4 w-4 rounded border-[#3d387a] accent-[#8b6dff]"
               />
               Ocultar cancelados
             </label>
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs font-medium text-[#d5d3f5] cursor-pointer">
               <input
                 type="checkbox"
                 checked={landscape}
                 onChange={(e) => setLandscape(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-teal-600"
+                className="h-4 w-4 rounded border-[#3d387a] accent-[#8b6dff]"
               />
               A4 Paisagem
             </label>
@@ -237,14 +237,14 @@ function ReportsContent() {
         </div>
       </div>
 
-      {/* Folha de Impressão A4 */}
+      {/* Folha de Impressão A4 (Sempre papel branco alto contraste P&B) */}
       {loading && !report ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-slate-500">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-teal-600" />
+        <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-10 text-center text-[#9c99c4]">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-[#8b6dff]" />
           Gerando visualização de impressão...
         </div>
       ) : report ? (
-        <div className="bg-white rounded-2xl border border-slate-300 p-6 sm:p-8 shadow-xs print:border-0 print:rounded-none print:shadow-none print:p-0">
+        <div className="bg-white text-slate-950 rounded-2xl border border-[#3d387a] p-6 sm:p-8 shadow-2xl shadow-black/40 print:border-0 print:rounded-none print:shadow-none print:p-0">
           {/* Cabeçalho do Relatório */}
           <div className="border-b-2 border-slate-900 pb-4 mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
             <div>
@@ -306,7 +306,7 @@ function ReportsContent() {
               : "Nenhum registro"}
           </div>
 
-          {/* Tabela de Impressão (Prancheta da Recepção/Médico) */}
+          {/* Tabela de Impressão */}
           <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse border border-slate-900">
               <thead>
@@ -397,7 +397,7 @@ export default function AdminReportsPage() {
     <Suspense
       fallback={
         <div className="p-10 text-center">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto text-teal-600" />
+          <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#8b6dff]" />
         </div>
       }
     >

@@ -110,7 +110,6 @@ export default function PublicBookingFlow() {
     "MORNING" | "AFTERNOON" | "FULL_DAY" | ""
   >("");
 
-  // Mês exibido no calendário
   const [calendarMonth, setCalendarMonth] = useState<{ year: number; month: number }>(
     () => {
       const now = new Date();
@@ -118,7 +117,6 @@ export default function PublicBookingFlow() {
     }
   );
 
-  // Passo 2 - Dados do paciente
   const [patientName, setPatientName] = useState("");
   const [whatsappInput, setWhatsappInput] = useState("");
   const [insuranceId, setInsuranceId] = useState("");
@@ -129,7 +127,6 @@ export default function PublicBookingFlow() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Passo 3 - Comprovante
   const [result, setResult] = useState<{
     duplicate: boolean;
     message?: string;
@@ -145,7 +142,6 @@ export default function PublicBookingFlow() {
       const json: BootstrapData = await res.json();
       setData(json);
 
-      // Seleciona automaticamente o mês da primeira data disponível
       const firstAvail = json.availability.find((d) => d.available);
       if (firstAvail) {
         const [y, m] = firstAvail.date.split("-").map(Number);
@@ -167,9 +163,7 @@ export default function PublicBookingFlow() {
   const availabilityMap = useMemo(() => {
     const map = new Map<string, DayAvailability>();
     if (data) {
-      for (const d of data.availability) {
-        map.set(d.date, d);
-      }
+      for (const d of data.availability) map.set(d.date, d);
     }
     return map;
   }, [data]);
@@ -188,9 +182,7 @@ export default function PublicBookingFlow() {
     const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
     const cells: Array<{ dateStr: string | null; dayNum: number | null }> = [];
-    for (let i = 0; i < startDow; i++) {
-      cells.push({ dateStr: null, dayNum: null });
-    }
+    for (let i = 0; i < startDow; i++) cells.push({ dateStr: null, dayNum: null });
     for (let day = 1; day <= daysInMonth; day++) {
       const mStr = String(month + 1).padStart(2, "0");
       const dStr = String(day).padStart(2, "0");
@@ -277,10 +269,7 @@ export default function PublicBookingFlow() {
       const json = await res.json();
       if (!res.ok) {
         setSubmitError(json.error || "Não foi possível concluir o agendamento.");
-        if (res.status === 409) {
-          // Recarrega disponibilidade caso o turno tenha lotado
-          void fetchBootstrap();
-        }
+        if (res.status === 409) void fetchBootstrap();
         return;
       }
 
@@ -315,9 +304,9 @@ export default function PublicBookingFlow() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
-        <Loader2 className="h-9 w-9 animate-spin text-teal-600 mb-3" />
-        <p className="text-slate-600 font-medium text-base">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#12102b]">
+        <Loader2 className="h-9 w-9 animate-spin text-[#8b6dff] mb-3" />
+        <p className="text-[#c7c4eb] font-medium text-base">
           Carregando datas disponíveis...
         </p>
       </div>
@@ -326,18 +315,18 @@ export default function PublicBookingFlow() {
 
   if (loadError || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 text-center">
-        <AlertCircle className="h-10 w-10 text-red-500 mb-3" />
-        <h1 className="text-lg font-semibold text-slate-900 mb-1">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#12102b] text-center">
+        <AlertCircle className="h-10 w-10 text-rose-400 mb-3" />
+        <h1 className="text-lg font-bold text-white mb-1">
           Não foi possível carregar a agenda
         </h1>
-        <p className="text-sm text-slate-600 mb-5 max-w-sm">
+        <p className="text-sm text-[#9c99c4] mb-5 max-w-sm">
           {loadError || "Tente novamente em alguns instantes."}
         </p>
         <button
           type="button"
           onClick={fetchBootstrap}
-          className="min-h-[48px] px-6 rounded-xl bg-teal-600 text-white font-semibold hover:bg-teal-700"
+          className="min-h-[48px] px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold shadow-lg shadow-violet-600/30"
         >
           Tentar novamente
         </button>
@@ -346,26 +335,29 @@ export default function PublicBookingFlow() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-[#12102b] text-[#f1f0ff] flex flex-col overflow-x-hidden relative">
+      {/* Subtle Ambient Glow */}
+      <div className="pointer-events-none fixed -top-24 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-[#7c5cff]/20 blur-[110px]" />
+
       {/* Cabeçalho compacto Mobile-First */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
+      <header className="bg-[#171536]/90 backdrop-blur-lg border-b border-[#2a2759] sticky top-0 z-20">
         <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-10 w-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#9c82ff] to-[#6344ff] text-white flex items-center justify-center shrink-0 shadow-lg shadow-violet-600/30">
               <Stethoscope className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-bold text-slate-900 truncate leading-tight">
+              <h1 className="text-sm sm:text-base font-bold text-white truncate leading-tight">
                 {data.settings.clinicName}
               </h1>
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-[#9c99c4] truncate">
                 Agendamento online • Ordem de chegada
               </p>
             </div>
           </div>
           <Link
             href="/admin"
-            className="text-xs font-medium text-slate-400 hover:text-slate-700 flex items-center gap-1 shrink-0 py-2 px-2 rounded-lg"
+            className="text-xs font-semibold text-[#8d8ab8] hover:text-white flex items-center gap-1 shrink-0 py-2 px-2.5 rounded-xl bg-[#211e47] border border-[#312d66]"
             title="Acesso Administrativo"
           >
             <Lock className="h-3.5 w-3.5" />
@@ -373,11 +365,11 @@ export default function PublicBookingFlow() {
           </Link>
         </div>
 
-        {/* Barra de Progresso (Passo 1 de 3, 2 de 3, 3 de 3) */}
+        {/* Barra de Progresso */}
         <div className="max-w-xl mx-auto px-4 pb-3">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
+          <div className="flex items-center justify-between text-xs font-semibold text-[#9c99c4] mb-1.5">
             <span>Passo {step} de 3</span>
-            <span className="text-teal-700">
+            <span className="text-[#b39eff]">
               {step === 1 && "Data e Turno"}
               {step === 2 && "Dados do Paciente"}
               {step === 3 && "Comprovante"}
@@ -387,8 +379,10 @@ export default function PublicBookingFlow() {
             {[1, 2, 3].map((s) => (
               <div
                 key={s}
-                className={`h-1.5 rounded-full transition-colors ${
-                  s <= step ? "bg-teal-600" : "bg-slate-200"
+                className={`h-1.5 rounded-full transition-all ${
+                  s <= step
+                    ? "bg-gradient-to-r from-[#957bff] to-[#4ea8ff]"
+                    : "bg-[#2a2759]"
                 }`}
               />
             ))}
@@ -397,16 +391,18 @@ export default function PublicBookingFlow() {
       </header>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 max-w-xl w-full mx-auto px-4 pt-5 pb-28 sm:pb-10">
+      <main className="relative z-10 flex-1 max-w-xl w-full mx-auto px-4 pt-5 pb-28 sm:pb-10">
         {/* ================= PASSO 1: DATA E TURNO ================= */}
         {step === 1 && (
           <div className="space-y-5">
             {/* Aviso de Ordem de Chegada */}
-            <div className="rounded-2xl bg-teal-50 border border-teal-200 p-3.5 flex items-start gap-3">
-              <Clock className="h-5 w-5 text-teal-700 shrink-0 mt-0.5" />
-              <div className="text-sm text-teal-950 leading-snug">
-                <p className="font-semibold">Atendimento por ordem de chegada</p>
-                <p className="text-teal-800 text-xs mt-0.5">
+            <div className="rounded-2xl bg-gradient-to-r from-[#241f54] to-[#1d2252] border border-[#3e3785] p-3.5 flex items-start gap-3 shadow-lg shadow-black/20">
+              <div className="h-9 w-9 rounded-xl bg-[#8b6dff]/20 border border-[#8b6dff]/40 flex items-center justify-center shrink-0">
+                <Clock className="h-4 w-4 text-[#b39eff]" />
+              </div>
+              <div className="text-sm leading-snug">
+                <p className="font-bold text-white">Atendimento por ordem de chegada</p>
+                <p className="text-[#b5b2db] text-xs mt-0.5">
                   Não há horário marcado. Escolha o dia e o turno desejados para
                   garantir sua vaga.
                 </p>
@@ -414,21 +410,21 @@ export default function PublicBookingFlow() {
             </div>
 
             {availableDaysList.length === 0 ? (
-              <div className="rounded-2xl bg-white border border-slate-200 p-6 text-center">
-                <CalendarIcon className="h-9 w-9 text-slate-400 mx-auto mb-2" />
-                <h2 className="font-semibold text-slate-900">
+              <div className="rounded-2xl bg-[#1b183d] border border-[#2d295e] p-6 text-center">
+                <CalendarIcon className="h-9 w-9 text-[#7c78a8] mx-auto mb-2" />
+                <h2 className="font-bold text-white">
                   Sem vagas disponíveis no momento
                 </h2>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-[#9c99c4] mt-1">
                   Todas as vagas para os próximos {data.settings.bookingWindowDays}{" "}
                   dias foram preenchidas. Tente novamente mais tarde.
                 </p>
               </div>
             ) : (
               <>
-                {/* Atalho rápido: Próximas datas disponíveis */}
+                {/* Atalho rápido: Próximas datas */}
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#8d8ab8] mb-2">
                     Próximas datas disponíveis
                   </p>
                   <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -440,20 +436,20 @@ export default function PublicBookingFlow() {
                           key={d.date}
                           type="button"
                           onClick={() => handleSelectDate(d.date)}
-                          className={`min-h-[56px] min-w-[78px] px-3 py-2 rounded-xl border text-center shrink-0 transition-all ${
+                          className={`min-h-[58px] min-w-[78px] px-3 py-2 rounded-2xl border text-center shrink-0 transition-all ${
                             active
-                              ? "bg-teal-600 border-teal-600 text-white shadow-sm"
-                              : "bg-white border-slate-200 text-slate-800 hover:border-teal-400"
+                              ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] border-transparent text-white shadow-lg shadow-violet-600/35"
+                              : "bg-[#1b183d] border-[#2f2b63] text-[#e3e1fa] hover:border-[#8b6dff]"
                           }`}
                         >
                           <div
                             className={`text-[11px] font-medium ${
-                              active ? "text-teal-100" : "text-slate-500"
+                              active ? "text-violet-100" : "text-[#8d8ab8]"
                             }`}
                           >
                             {getWeekdayLabel(d.date).slice(0, 3)}
                           </div>
-                          <div className="text-sm font-bold">
+                          <div className="text-sm font-extrabold">
                             {day}/{m}
                           </div>
                         </button>
@@ -463,24 +459,24 @@ export default function PublicBookingFlow() {
                 </div>
 
                 {/* Calendário Mensal Responsivo */}
-                <section className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+                <section className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 shadow-xl shadow-black/25">
                   <div className="flex items-center justify-between mb-3">
                     <button
                       type="button"
                       onClick={prevMonth}
                       aria-label="Mês anterior"
-                      className="h-11 w-11 rounded-xl border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50"
+                      className="h-11 w-11 rounded-xl border border-[#322e66] bg-[#141230] flex items-center justify-center text-white hover:border-[#8b6dff]"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </button>
-                    <h2 className="text-base font-bold text-slate-900">
+                    <h2 className="text-base font-bold text-white">
                       {MONTH_NAMES[calendarMonth.month]} {calendarMonth.year}
                     </h2>
                     <button
                       type="button"
                       onClick={nextMonth}
                       aria-label="Próximo mês"
-                      className="h-11 w-11 rounded-xl border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50"
+                      className="h-11 w-11 rounded-xl border border-[#322e66] bg-[#141230] flex items-center justify-center text-white hover:border-[#8b6dff]"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>
@@ -490,14 +486,14 @@ export default function PublicBookingFlow() {
                     {WEEKDAY_SHORT.map((w) => (
                       <div
                         key={w}
-                        className="text-center text-xs font-semibold text-slate-400 py-1"
+                        className="text-center text-xs font-semibold text-[#7d79ad] py-1"
                       >
                         {w}
                       </div>
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-7 gap-1">
+                  <div className="grid grid-cols-7 gap-1.5">
                     {calendarCells.map((cell, idx) => {
                       if (!cell.dateStr || !cell.dayNum) {
                         return <div key={`empty-${idx}`} className="h-12" />;
@@ -512,17 +508,17 @@ export default function PublicBookingFlow() {
                           type="button"
                           disabled={!isAvailable}
                           onClick={() => handleSelectDate(cell.dateStr!)}
-                          className={`h-12 rounded-xl text-sm font-semibold flex flex-col items-center justify-center transition-all ${
+                          className={`h-12 rounded-xl text-sm font-bold flex flex-col items-center justify-center transition-all ${
                             isSelected
-                              ? "bg-teal-600 text-white shadow-sm ring-2 ring-teal-300"
+                              ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] text-white shadow-lg shadow-violet-600/40 ring-2 ring-[#b39eff]/50"
                               : isAvailable
-                              ? "bg-teal-50/70 text-teal-900 hover:bg-teal-100 border border-teal-200"
-                              : "text-slate-300 bg-transparent cursor-not-allowed"
+                              ? "bg-[#242052] text-white hover:bg-[#2f2a69] border border-[#453d91]"
+                              : "text-[#4b4775] bg-transparent cursor-not-allowed"
                           }`}
                         >
                           <span>{cell.dayNum}</span>
                           {isAvailable && !isSelected && (
-                            <span className="h-1 w-1 rounded-full bg-teal-600 mt-0.5" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#4ea8ff] mt-0.5" />
                           )}
                         </button>
                       );
@@ -533,7 +529,7 @@ export default function PublicBookingFlow() {
                 {/* Seleção de Turno */}
                 {selectedDate && selectedDayInfo && (
                   <section className="space-y-2.5">
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-sm font-bold text-white">
                       Escolha o turno para {formatDateBR(selectedDate)} (
                       {getWeekdayLabel(selectedDate)})
                     </h3>
@@ -553,37 +549,37 @@ export default function PublicBookingFlow() {
                               key={s.shift}
                               type="button"
                               onClick={() => setSelectedShift(s.shift)}
-                              className={`min-h-[64px] w-full px-4 py-3.5 rounded-2xl border-2 text-left flex items-center justify-between gap-3 transition-all ${
+                              className={`min-h-[66px] w-full px-4 py-3.5 rounded-2xl border-2 text-left flex items-center justify-between gap-3 transition-all ${
                                 isSelected
-                                  ? "border-teal-600 bg-teal-50/80 shadow-xs"
-                                  : "border-slate-200 bg-white hover:border-teal-300"
+                                  ? "border-[#957bff] bg-gradient-to-r from-[#2c2569] to-[#232059] shadow-lg shadow-violet-700/25"
+                                  : "border-[#2e2a61] bg-[#1b183d] hover:border-[#6344ff]"
                               }`}
                             >
                               <div className="flex items-center gap-3">
                                 <div
                                   className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${
                                     isSelected
-                                      ? "bg-teal-600 text-white"
-                                      : "bg-slate-100 text-slate-600"
+                                      ? "bg-gradient-to-br from-[#957bff] to-[#6344ff] text-white shadow-md"
+                                      : "bg-[#141230] text-[#a792ff] border border-[#2f2b63]"
                                   }`}
                                 >
                                   <Icon className="h-5 w-5" />
                                 </div>
                                 <div>
-                                  <div className="font-bold text-slate-900 text-base">
+                                  <div className="font-bold text-white text-base">
                                     Turno da {s.shiftLabel}
                                   </div>
-                                  <div className="text-xs text-slate-500">
+                                  <div className="text-xs text-[#9c99c4]">
                                     Atendimento por ordem de chegada
                                   </div>
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
                                 <span
-                                  className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                  className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${
                                     isSelected
-                                      ? "bg-teal-600 text-white"
-                                      : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                      ? "bg-gradient-to-r from-[#4ea8ff] to-[#2d7cf6] text-white"
+                                      : "bg-emerald-400/15 text-emerald-300 border border-emerald-400/35"
                                   }`}
                                 >
                                   {data.settings.showRemainingSlots &&
@@ -604,7 +600,7 @@ export default function PublicBookingFlow() {
             )}
 
             {/* Barra de ação fixa no rodapé (Mobile) */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 p-3 sm:static sm:bg-transparent sm:border-0 sm:p-0 z-20">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#171536]/95 backdrop-blur-lg border-t border-[#2a2759] p-3 sm:static sm:bg-transparent sm:border-0 sm:p-0 z-20">
               <div className="max-w-xl mx-auto">
                 <button
                   type="button"
@@ -613,7 +609,7 @@ export default function PublicBookingFlow() {
                     setStep(2);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className="w-full min-h-[52px] rounded-xl bg-teal-600 text-white font-bold text-base flex items-center justify-center gap-2 shadow-sm hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-full min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] to-[#6344ff] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
                   Continuar para seus dados
                   <ArrowRight className="h-5 w-5" />
@@ -627,14 +623,14 @@ export default function PublicBookingFlow() {
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Resumo da escolha do Passo 1 */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-3.5 flex items-center justify-between gap-2">
+            <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-3.5 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <CalendarIcon className="h-5 w-5 text-teal-600 shrink-0" />
+                <CalendarIcon className="h-5 w-5 text-[#957bff] shrink-0" />
                 <div className="text-sm">
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-white">
                     {formatDateBR(selectedDate)}
                   </span>
-                  <span className="text-slate-500">
+                  <span className="text-[#9c99c4]">
                     {" "}
                     •{" "}
                     {selectedDayInfo?.shifts.find((s) => s.shift === selectedShift)
@@ -645,25 +641,25 @@ export default function PublicBookingFlow() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-xs font-semibold text-teal-700 hover:underline px-2 py-1"
+                className="text-xs font-bold text-[#a792ff] hover:text-white px-2.5 py-1 rounded-lg bg-[#252154]"
               >
                 Alterar
               </button>
             </div>
 
             {submitError && (
-              <div className="rounded-xl bg-red-50 border border-red-200 p-3.5 flex items-start gap-2.5 text-sm text-red-800">
-                <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <div className="rounded-xl bg-rose-500/15 border border-rose-500/40 p-3.5 flex items-start gap-2.5 text-sm text-rose-200">
+                <AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
                 <span>{submitError}</span>
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-5 shadow-xs">
+            <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 sm:p-5 space-y-5 shadow-xl shadow-black/25">
               {/* Nome Completo */}
               <div>
                 <label
                   htmlFor="patientName"
-                  className="block text-sm font-bold text-slate-800 mb-1.5"
+                  className="block text-sm font-bold text-white mb-1.5"
                 >
                   Nome completo do paciente *
                 </label>
@@ -675,7 +671,7 @@ export default function PublicBookingFlow() {
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
                   placeholder="Ex: Maria Aparecida da Silva"
-                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-[#343069] bg-[#13112d] text-white placeholder-[#6f6c9a] text-base focus:outline-none focus:ring-2 focus:ring-[#8b6dff] focus:border-[#8b6dff]"
                 />
               </div>
 
@@ -683,7 +679,7 @@ export default function PublicBookingFlow() {
               <div>
                 <label
                   htmlFor="whatsapp"
-                  className="block text-sm font-bold text-slate-800 mb-1.5"
+                  className="block text-sm font-bold text-white mb-1.5"
                 >
                   Telefone para contato (de preferência WhatsApp) *
                 </label>
@@ -696,18 +692,18 @@ export default function PublicBookingFlow() {
                   value={whatsappInput}
                   onChange={(e) => setWhatsappInput(maskBrazilianPhone(e.target.value))}
                   placeholder="(91) 99999-9999"
-                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-[#343069] bg-[#13112d] text-white placeholder-[#6f6c9a] text-base focus:outline-none focus:ring-2 focus:ring-[#8b6dff] focus:border-[#8b6dff]"
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-[#9c99c4] mt-1">
                   Enviaremos o lembrete e a confirmação da consulta por este número.
                 </p>
               </div>
 
-              {/* Convênio / Particular (Opções fixas — zero indicação de prioridade) */}
+              {/* Convênio / Particular (Zero indicação de prioridade) */}
               <div>
                 <label
                   htmlFor="insuranceId"
-                  className="block text-sm font-bold text-slate-800 mb-1.5"
+                  className="block text-sm font-bold text-white mb-1.5"
                 >
                   Convênio ou Particular *
                 </label>
@@ -716,7 +712,7 @@ export default function PublicBookingFlow() {
                   required
                   value={insuranceId}
                   onChange={(e) => setInsuranceId(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-[#343069] bg-[#13112d] text-white text-base focus:outline-none focus:ring-2 focus:ring-[#8b6dff] focus:border-[#8b6dff]"
                 >
                   <option value="">Selecione uma opção...</option>
                   {data.options.insurances.map((opt) => (
@@ -727,9 +723,9 @@ export default function PublicBookingFlow() {
                 </select>
               </div>
 
-              {/* Tipo de Consulta (Cards grandes clicáveis) */}
+              {/* Tipo de Consulta */}
               <div>
-                <span className="block text-sm font-bold text-slate-800 mb-2">
+                <span className="block text-sm font-bold text-white mb-2">
                   Tipo de consulta *
                 </span>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -740,10 +736,10 @@ export default function PublicBookingFlow() {
                         key={vt.id}
                         type="button"
                         onClick={() => setVisitTypeId(vt.id)}
-                        className={`min-h-[52px] px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                        className={`min-h-[52px] px-3 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
                           active
-                            ? "border-teal-600 bg-teal-50 text-teal-900 shadow-xs"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                            ? "border-[#957bff] bg-gradient-to-r from-[#8f71ff]/25 to-[#4ea8ff]/20 text-white shadow-sm"
+                            : "border-[#2e2a61] bg-[#141230] text-[#b4b1db] hover:border-[#6344ff]"
                         }`}
                       >
                         {vt.name}
@@ -753,9 +749,9 @@ export default function PublicBookingFlow() {
                 </div>
               </div>
 
-              {/* Qual joelho será avaliado (Cards grandes clicáveis) */}
+              {/* Joelho Avaliado */}
               <div>
-                <span className="block text-sm font-bold text-slate-800 mb-2">
+                <span className="block text-sm font-bold text-white mb-2">
                   Qual joelho será avaliado? *
                 </span>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -766,10 +762,10 @@ export default function PublicBookingFlow() {
                         key={ko.id}
                         type="button"
                         onClick={() => setKneeOptionId(ko.id)}
-                        className={`min-h-[52px] px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                        className={`min-h-[52px] px-3 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
                           active
-                            ? "border-teal-600 bg-teal-50 text-teal-900 shadow-xs"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                            ? "border-[#957bff] bg-gradient-to-r from-[#8f71ff]/25 to-[#4ea8ff]/20 text-white shadow-sm"
+                            : "border-[#2e2a61] bg-[#141230] text-[#b4b1db] hover:border-[#6344ff]"
                         }`}
                       >
                         {ko.name}
@@ -780,16 +776,16 @@ export default function PublicBookingFlow() {
               </div>
 
               {/* Aceite LGPD */}
-              <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+              <label className="flex items-start gap-3 p-3.5 rounded-xl bg-[#141230] border border-[#2e2a61] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={lgpdAccepted}
                   onChange={(e) => setLgpdAccepted(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 shrink-0"
+                  className="mt-1 h-5 w-5 rounded accent-[#8b6dff] shrink-0"
                 />
-                <span className="text-xs text-slate-600 leading-relaxed">
+                <span className="text-xs text-[#b4b1db] leading-relaxed">
                   Concordo com a{" "}
-                  <strong className="text-slate-800">
+                  <strong className="text-white">
                     Política de Privacidade (LGPD)
                   </strong>{" "}
                   e autorizo o uso dos meus dados para confirmação do agendamento e
@@ -799,12 +795,12 @@ export default function PublicBookingFlow() {
             </div>
 
             {/* Botões de Ação Fixos no Mobile */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 p-3 sm:static sm:bg-transparent sm:border-0 sm:p-0 z-20">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#171536]/95 backdrop-blur-lg border-t border-[#2a2759] p-3 sm:static sm:bg-transparent sm:border-0 sm:p-0 z-20">
               <div className="max-w-xl mx-auto flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="min-h-[52px] px-4 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold flex items-center justify-center gap-1.5 hover:bg-slate-50"
+                  className="min-h-[52px] px-4 rounded-xl border border-[#343069] bg-[#1b183d] text-[#d5d3f5] font-semibold flex items-center justify-center gap-1.5 hover:border-[#8b6dff]"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Voltar
@@ -812,7 +808,7 @@ export default function PublicBookingFlow() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 min-h-[52px] rounded-xl bg-teal-600 text-white font-bold text-base flex items-center justify-center gap-2 shadow-sm hover:bg-teal-700 disabled:opacity-50"
+                  className="flex-1 min-h-[52px] rounded-xl bg-gradient-to-r from-[#9274ff] to-[#6344ff] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50"
                 >
                   {submitting ? (
                     <>
@@ -835,11 +831,11 @@ export default function PublicBookingFlow() {
         {step === 3 && result && (
           <div className="space-y-4">
             {result.duplicate && (
-              <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3 text-sm text-amber-900">
-                <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="rounded-2xl bg-amber-400/15 border border-amber-400/40 p-4 flex items-start gap-3 text-sm text-amber-100">
+                <Info className="h-5 w-5 text-amber-300 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold">Agendamento já existente</p>
-                  <p className="text-xs text-amber-800 mt-0.5">
+                  <p className="text-xs text-amber-200/90 mt-0.5">
                     Encontramos um agendamento ativo para este paciente nesta data.
                     Abaixo está o seu comprovante com o protocolo já registrado.
                   </p>
@@ -848,22 +844,22 @@ export default function PublicBookingFlow() {
             )}
 
             {/* Cartão Comprovante otimizado para print no celular */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="bg-teal-600 text-white px-5 py-6 text-center">
-                <div className="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center mx-auto mb-2.5">
+            <div className="bg-[#1b183d] rounded-3xl border border-[#343069] shadow-2xl shadow-black/40 overflow-hidden">
+              <div className="bg-gradient-to-br from-[#957bff] via-[#6e52ff] to-[#3b82f6] text-white px-5 py-6 text-center">
+                <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-2.5">
                   <CheckCircle2 className="h-7 w-7 text-white" />
                 </div>
-                <h2 className="text-xl font-bold">
+                <h2 className="text-xl font-extrabold">
                   {result.duplicate
                     ? "Protocolo Encontrado"
                     : "Agendamento Realizado!"}
                 </h2>
-                <p className="text-xs text-teal-100 mt-1">
+                <p className="text-xs text-violet-100 mt-1">
                   Tire um print desta tela para apresentar na recepção
                 </p>
 
-                <div className="mt-4 inline-block bg-white text-teal-900 rounded-2xl px-6 py-2.5 shadow-sm">
-                  <div className="text-[11px] uppercase tracking-wider font-semibold text-teal-600">
+                <div className="mt-4 inline-block bg-[#12102b]/90 border border-white/20 text-white rounded-2xl px-6 py-2.5 shadow-lg">
+                  <div className="text-[11px] uppercase tracking-wider font-semibold text-[#b39eff]">
                     Protocolo
                   </div>
                   <div className="text-2xl font-black tracking-widest">
@@ -873,67 +869,67 @@ export default function PublicBookingFlow() {
               </div>
 
               <div className="p-5 space-y-3.5 text-sm">
-                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
+                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-[#2b275c]">
                   <div>
-                    <div className="text-xs text-slate-500">Data</div>
-                    <div className="font-bold text-slate-900 text-base">
+                    <div className="text-xs text-[#8d8ab8]">Data</div>
+                    <div className="font-bold text-white text-base">
                       {result.appointment.dateBR}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-slate-500">Turno</div>
-                    <div className="font-bold text-slate-900 text-base">
+                    <div className="text-xs text-[#8d8ab8]">Turno</div>
+                    <div className="font-bold text-white text-base">
                       {result.appointment.shiftLabel}
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2.5 pb-3 border-b border-slate-100">
+                <div className="space-y-2.5 pb-3 border-b border-[#2b275c]">
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">Paciente</span>
-                    <span className="font-semibold text-slate-900 text-right">
+                    <span className="text-[#8d8ab8]">Paciente</span>
+                    <span className="font-semibold text-white text-right">
                       {result.appointment.patientName}
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">WhatsApp</span>
-                    <span className="font-semibold text-slate-900 text-right">
+                    <span className="text-[#8d8ab8]">WhatsApp</span>
+                    <span className="font-semibold text-white text-right">
                       {result.appointment.whatsappDisplay}
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">Convênio</span>
-                    <span className="font-semibold text-slate-900 text-right">
+                    <span className="text-[#8d8ab8]">Convênio</span>
+                    <span className="font-semibold text-white text-right">
                       {result.appointment.insurance}
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">Tipo</span>
-                    <span className="font-semibold text-slate-900 text-right">
+                    <span className="text-[#8d8ab8]">Tipo</span>
+                    <span className="font-semibold text-white text-right">
                       {result.appointment.visitType}
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">Avaliação</span>
-                    <span className="font-semibold text-slate-900 text-right">
+                    <span className="text-[#8d8ab8]">Avaliação</span>
+                    <span className="font-semibold text-white text-right">
                       {result.appointment.kneeOption}
                     </span>
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-start gap-2.5">
-                  <MessageCircle className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5" />
-                  <div className="text-xs text-emerald-900 leading-relaxed">
+                <div className="rounded-xl bg-emerald-400/10 border border-emerald-400/30 p-3.5 flex items-start gap-2.5">
+                  <MessageCircle className="h-5 w-5 text-emerald-300 shrink-0 mt-0.5" />
+                  <div className="text-xs text-emerald-100 leading-relaxed">
                     <strong>Confirmação via WhatsApp:</strong> Você receberá uma
                     mensagem no WhatsApp informado antes da consulta para confirmar
                     sua presença.
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 flex items-start gap-2.5">
-                  <ShieldCheck className="h-5 w-5 text-slate-600 shrink-0 mt-0.5" />
-                  <div className="text-xs text-slate-700 leading-relaxed">
-                    <strong className="block text-slate-900 mb-0.5">
+                <div className="rounded-xl bg-[#141230] border border-[#2e2a61] p-3.5 flex items-start gap-2.5">
+                  <ShieldCheck className="h-5 w-5 text-[#a792ff] shrink-0 mt-0.5" />
+                  <div className="text-xs text-[#c7c4eb] leading-relaxed">
+                    <strong className="block text-white mb-0.5">
                       Orientações do Consultório
                     </strong>
                     {data.settings.protocolInstructions}
@@ -945,7 +941,7 @@ export default function PublicBookingFlow() {
             <button
               type="button"
               onClick={resetBooking}
-              className="w-full min-h-[50px] rounded-xl border border-slate-300 bg-white text-slate-800 font-semibold hover:bg-slate-50"
+              className="w-full min-h-[50px] rounded-xl border border-[#343069] bg-[#1b183d] text-white font-semibold hover:border-[#8b6dff] transition-colors"
             >
               Fazer outro agendamento
             </button>

@@ -78,11 +78,9 @@ export default function AdminSettingsPage() {
   const [tab, setTab] = useState<"weekly" | "dates" | "options" | "general">("weekly");
   const [toast, setToast] = useState<string | null>(null);
 
-  // Aba 1: Dias da Semana
   const [weeklyQuotas, setWeeklyQuotas] = useState<WeeklyQuotaRow[]>([]);
   const [savingWeekly, setSavingWeekly] = useState(false);
 
-  // Aba 2: Datas Individuais
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -100,14 +98,12 @@ export default function AdminSettingsPage() {
   });
   const [savingDate, setSavingDate] = useState(false);
 
-  // Aba 3: Opções Fixas
   const [insurances, setInsurances] = useState<FixedOptionItem[]>([]);
   const [visitTypes, setVisitTypes] = useState<FixedOptionItem[]>([]);
   const [kneeOptions, setKneeOptions] = useState<FixedOptionItem[]>([]);
   const [newName, setNewName] = useState({ insurance: "", visitType: "", knee: "" });
   const [newPrivatePriority, setNewPrivatePriority] = useState(false);
 
-  // Aba 4: Parâmetros Gerais
   const [settings, setSettings] = useState<ClinicSettingsData>({
     clinicName: "",
     bookingWindowDays: 30,
@@ -168,7 +164,6 @@ export default function AdminSettingsPage() {
     void loadMonthExceptions();
   }, [loadMonthExceptions]);
 
-  // Helpers Aba 1
   function getQuota(dow: number, shift: ShiftType): WeeklyQuotaRow {
     return (
       weeklyQuotas.find((q) => q.dayOfWeek === dow && q.shift === shift) || {
@@ -209,9 +204,7 @@ export default function AdminSettingsPage() {
 
   function toggleDayActive(dow: number, enable: boolean) {
     if (!enable) {
-      for (const s of SHIFTS) {
-        updateQuotaLocal(dow, s.key, { active: false });
-      }
+      for (const s of SHIFTS) updateQuotaLocal(dow, s.key, { active: false });
     } else {
       updateQuotaLocal(dow, "MORNING", { active: true });
     }
@@ -225,15 +218,12 @@ export default function AdminSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quotas: weeklyQuotas }),
       });
-      if (res.ok) {
-        showToast("Grade semanal salva com sucesso!");
-      }
+      if (res.ok) showToast("Grade semanal salva com sucesso!");
     } finally {
       setSavingWeekly(false);
     }
   }
 
-  // Helpers Aba 2 (Calendário de Datas Individuais)
   const exceptionsByDate = useMemo(() => {
     const map = new Map<string, DateExceptionRow[]>();
     for (const ex of exceptions) {
@@ -287,7 +277,6 @@ export default function AdminSettingsPage() {
         },
       });
     } else {
-      // Pré-carrega valores do padrão semanal daquele dia
       const [y, m, d] = dateStr.split("-").map(Number);
       const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
       const qM = getQuota(dow, "MORNING");
@@ -360,7 +349,6 @@ export default function AdminSettingsPage() {
     }
   }
 
-  // Helpers Aba 3 (Opções Fixas)
   async function createOption(type: "insurance" | "visitType" | "knee") {
     const name = newName[type].trim();
     if (!name) return;
@@ -415,7 +403,6 @@ export default function AdminSettingsPage() {
     }
   }
 
-  // Helpers Aba 4 (Parâmetros Gerais)
   async function saveGeneralSettings(e: React.FormEvent) {
     e.preventDefault();
     setSavingGeneral(true);
@@ -425,9 +412,7 @@ export default function AdminSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-      if (res.ok) {
-        showToast("Parâmetros gerais salvos!");
-      }
+      if (res.ok) showToast("Parâmetros gerais salvos!");
     } finally {
       setSavingGeneral(false);
     }
@@ -435,8 +420,8 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-slate-500">
-        <Loader2 className="h-7 w-7 animate-spin mx-auto text-teal-600 mb-2" />
+      <div className="p-12 text-center text-[#9c99c4]">
+        <Loader2 className="h-7 w-7 animate-spin mx-auto text-[#8b6dff] mb-2" />
         Carregando configurações...
       </div>
     );
@@ -446,14 +431,15 @@ export default function AdminSettingsPage() {
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Configurações</h1>
-          <p className="text-sm text-slate-500">
-            Configure cotas semanais, datas individuais, opções fixas do formulário e
-            parâmetros do consultório
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Configurações
+          </h1>
+          <p className="text-sm text-[#9c99c4]">
+            Cotas semanais, datas individuais, opções fixas e parâmetros do consultório
           </p>
         </div>
         {toast && (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-sm font-semibold shadow-lg shadow-violet-600/30">
             <CheckCircle2 className="h-4 w-4" />
             {toast}
           </div>
@@ -461,7 +447,7 @@ export default function AdminSettingsPage() {
       </div>
 
       {/* Abas */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-[#292657] pb-3.5">
         {[
           { id: "weekly", label: "1. Dias da Semana e Quantidades", icon: Sliders },
           { id: "dates", label: "2. Datas Individuais", icon: CalendarIcon },
@@ -475,10 +461,10 @@ export default function AdminSettingsPage() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id as typeof tab)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors ${
+              className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
                 active
-                  ? "bg-teal-600 text-white shadow-xs"
-                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                  ? "bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white shadow-lg shadow-violet-600/30"
+                  : "bg-[#1b183d] border border-[#2f2b63] text-[#b4b1db] hover:text-white hover:border-[#7c5cff]"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -491,13 +477,14 @@ export default function AdminSettingsPage() {
       {/* ================= ABA 1: DIAS DA SEMANA ================= */}
       {tab === "weekly" && (
         <div className="space-y-4">
-          <div className="rounded-xl bg-indigo-50 border border-indigo-200 p-3.5 text-xs text-indigo-900 flex items-start gap-2.5">
-            <ShieldAlert className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+          <div className="rounded-2xl bg-[#221d52] border border-[#453d91] p-4 text-xs text-[#d6d2ff] flex items-start gap-2.5">
+            <ShieldAlert className="h-4 w-4 text-[#a792ff] shrink-0 mt-0.5" />
             <span>
-              <strong>Reserva Silenciosa Particular:</strong> Quando configurada (&gt; 0),
-              essas vagas ficam ocultas e reservadas exclusivamente para quem selecionar
-              um convênio marcado como <em>Prioridade Silenciosa (Particular)</em>. O
-              portal público nunca exibe essa regra.
+              <strong className="text-white">Reserva Silenciosa Particular:</strong>{" "}
+              Quando configurada (&gt; 0), essas vagas ficam ocultas e reservadas
+              exclusivamente para quem selecionar um convênio marcado como{" "}
+              <em>Prioridade Silenciosa (Particular)</em>. O portal público nunca exibe
+              essa regra.
             </span>
           </div>
 
@@ -507,18 +494,18 @@ export default function AdminSettingsPage() {
               return (
                 <div
                   key={dow}
-                  className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs"
+                  className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 shadow-lg shadow-black/20"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <div className="font-bold text-slate-900">{dayName}</div>
+                    <div className="font-bold text-white">{dayName}</div>
                     <label className="inline-flex items-center gap-2 text-xs font-semibold cursor-pointer">
                       <input
                         type="checkbox"
                         checked={anyActive}
                         onChange={(e) => toggleDayActive(dow, e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-teal-600"
+                        className="h-4 w-4 rounded accent-[#8b6dff]"
                       />
-                      <span className={anyActive ? "text-teal-700" : "text-slate-400"}>
+                      <span className={anyActive ? "text-[#a792ff]" : "text-[#6f6c9e]"}>
                         {anyActive ? "Atende" : "Não atende"}
                       </span>
                     </label>
@@ -531,13 +518,13 @@ export default function AdminSettingsPage() {
                         return (
                           <div
                             key={s.key}
-                            className={`rounded-xl border p-3 ${
+                            className={`rounded-xl border p-3.5 transition-all ${
                               q.active
-                                ? "border-teal-300 bg-teal-50/40"
-                                : "border-slate-200 bg-slate-50/50 opacity-70"
+                                ? "border-[#6344ff]/60 bg-[#221e4d]"
+                                : "border-[#2a2657] bg-[#141230] opacity-65"
                             }`}
                           >
-                            <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-2 cursor-pointer">
+                            <label className="flex items-center gap-2 text-sm font-bold text-white mb-2.5 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={q.active}
@@ -546,15 +533,15 @@ export default function AdminSettingsPage() {
                                     active: e.target.checked,
                                   })
                                 }
-                                className="h-4 w-4 rounded border-slate-300 text-teal-600"
+                                className="h-4 w-4 rounded accent-[#8b6dff]"
                               />
                               {s.label}
                             </label>
 
                             {q.active && (
-                              <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="grid grid-cols-2 gap-2.5 text-xs">
                                 <div>
-                                  <label className="block text-slate-600 mb-1">
+                                  <label className="block text-[#9c99c4] mb-1">
                                     Máx. vagas
                                   </label>
                                   <input
@@ -567,11 +554,11 @@ export default function AdminSettingsPage() {
                                         maxSlots: Math.max(0, Number(e.target.value)),
                                       })
                                     }
-                                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-semibold"
+                                    className="w-full h-9 px-2.5 rounded-lg border border-[#3a3675] bg-[#13112d] text-white font-bold"
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-indigo-700 mb-1">
+                                  <label className="block text-[#b39eff] mb-1">
                                     Reserva Part.
                                   </label>
                                   <input
@@ -587,7 +574,7 @@ export default function AdminSettingsPage() {
                                         ),
                                       })
                                     }
-                                    className="w-full h-9 px-2.5 rounded-lg border border-indigo-200 bg-white font-semibold"
+                                    className="w-full h-9 px-2.5 rounded-lg border border-[#5c4ab8] bg-[#13112d] text-white font-bold"
                                   />
                                 </div>
                               </div>
@@ -607,7 +594,7 @@ export default function AdminSettingsPage() {
               type="button"
               disabled={savingWeekly}
               onClick={saveWeeklyQuotas}
-              className="h-11 px-6 rounded-xl bg-teal-600 text-white font-bold flex items-center gap-2 hover:bg-teal-700 disabled:opacity-50"
+              className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold flex items-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50"
             >
               {savingWeekly ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -623,8 +610,7 @@ export default function AdminSettingsPage() {
       {/* ================= ABA 2: DATAS INDIVIDUAIS ================= */}
       {tab === "dates" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Calendário */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <div className="lg:col-span-7 bg-[#1b183d] rounded-2xl border border-[#2d295e] p-5 shadow-lg shadow-black/20">
             <div className="flex items-center justify-between mb-4">
               <button
                 type="button"
@@ -635,11 +621,11 @@ export default function AdminSettingsPage() {
                       : { year: p.year, month: p.month - 1 }
                   )
                 }
-                className="h-9 w-9 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                className="h-9 w-9 rounded-xl border border-[#343069] bg-[#13112d] text-white flex items-center justify-center hover:border-[#8b6dff]"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h2 className="font-bold text-slate-900">
+              <h2 className="font-bold text-white">
                 {MONTH_NAMES[calMonth.month]} {calMonth.year}
               </h2>
               <button
@@ -651,13 +637,13 @@ export default function AdminSettingsPage() {
                       : { year: p.year, month: p.month + 1 }
                   )
                 }
-                className="h-9 w-9 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                className="h-9 w-9 rounded-xl border border-[#343069] bg-[#13112d] text-white flex items-center justify-center hover:border-[#8b6dff]"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400 mb-2">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-[#7d79ad] mb-2">
               {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
                 <div key={d}>{d}</div>
               ))}
@@ -676,14 +662,14 @@ export default function AdminSettingsPage() {
                     key={c.dateStr}
                     type="button"
                     onClick={() => openDateEditor(c.dateStr!)}
-                    className={`h-12 rounded-xl text-sm font-semibold border flex flex-col items-center justify-center transition-all ${
+                    className={`h-12 rounded-xl text-sm font-bold border flex flex-col items-center justify-center transition-all ${
                       isSelected
-                        ? "bg-teal-600 text-white border-teal-600 ring-2 ring-teal-300"
+                        ? "bg-gradient-to-br from-[#9274ff] to-[#6344ff] text-white border-transparent shadow-lg shadow-violet-600/35"
                         : isBlocked
-                        ? "bg-red-50 text-red-700 border-red-200"
+                        ? "bg-rose-500/20 text-rose-200 border-rose-500/40"
                         : isCustom
-                        ? "bg-amber-50 text-amber-900 border-amber-300"
-                        : "bg-white text-slate-700 border-slate-200 hover:border-teal-400"
+                        ? "bg-amber-400/20 text-amber-200 border-amber-400/40"
+                        : "bg-[#141230] text-[#d5d3f5] border-[#2c285c] hover:border-[#8b6dff]"
                     }`}
                   >
                     <span>{c.dayNum}</span>
@@ -698,39 +684,38 @@ export default function AdminSettingsPage() {
               })}
             </div>
 
-            <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t border-slate-100 text-xs text-slate-600">
+            <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t border-[#2b275c] text-xs text-[#9c99c4]">
               <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded bg-red-100 border border-red-300" />
+                <span className="h-3 w-3 rounded bg-rose-500/30 border border-rose-500/50" />
                 Bloqueado (feriado/folga)
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded bg-amber-100 border border-amber-300" />
+                <span className="h-3 w-3 rounded bg-amber-400/30 border border-amber-400/50" />
                 Personalizado (sobrescreve semana)
               </span>
             </div>
           </div>
 
-          {/* Painel Editor da Data Selecionada */}
-          <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <div className="lg:col-span-5 bg-[#1b183d] rounded-2xl border border-[#2d295e] p-5 shadow-lg shadow-black/20">
             {!selectedDate ? (
-              <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-10">
-                <CalendarIcon className="h-10 w-10 mb-2" />
-                <p className="text-sm font-medium text-slate-600">
+              <div className="h-full flex flex-col items-center justify-center text-center text-[#7d79ad] py-10">
+                <CalendarIcon className="h-10 w-10 mb-2 text-[#6344ff]" />
+                <p className="text-sm font-semibold text-white">
                   Clique em qualquer data no calendário
                 </p>
-                <p className="text-xs mt-1">
+                <p className="text-xs mt-1 text-[#9c99c4]">
                   Bloqueie feriados, abra datas extras ou altere a quantidade de vagas
                   individualmente.
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between border-b border-[#2b275c] pb-3">
                   <div>
-                    <h3 className="font-bold text-slate-900">
+                    <h3 className="font-bold text-white">
                       Data: {formatDateBR(selectedDate)}
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[#9c99c4]">
                       Sobrescreve a regra semanal apenas neste dia
                     </p>
                   </div>
@@ -739,7 +724,7 @@ export default function AdminSettingsPage() {
                       type="button"
                       onClick={restoreWeeklyForDate}
                       disabled={savingDate}
-                      className="text-xs font-semibold text-slate-600 hover:text-red-600 flex items-center gap-1"
+                      className="text-xs font-semibold text-[#a792ff] hover:text-rose-300 flex items-center gap-1"
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
                       Restaurar semana
@@ -747,20 +732,20 @@ export default function AdminSettingsPage() {
                   )}
                 </div>
 
-                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-red-50 border border-red-200 cursor-pointer">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={exIsBlocked}
                     onChange={(e) => setExIsBlocked(e.target.checked)}
-                    className="h-4 w-4 rounded border-red-300 text-red-600"
+                    className="h-4 w-4 rounded accent-rose-500"
                   />
-                  <span className="text-sm font-bold text-red-900">
+                  <span className="text-sm font-bold text-rose-200">
                     Bloquear esta data (sem atendimento)
                   </span>
                 </label>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  <label className="block text-xs font-semibold text-[#9c99c4] mb-1">
                     Motivo / Observação (interno)
                   </label>
                   <input
@@ -768,13 +753,13 @@ export default function AdminSettingsPage() {
                     value={exReason}
                     onChange={(e) => setExReason(e.target.value)}
                     placeholder="Ex: Feriado, Congresso, Mutirão de sábado..."
-                    className="w-full h-10 px-3 rounded-xl border border-slate-300 text-sm"
+                    className="w-full h-10 px-3 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
                   />
                 </div>
 
                 {!exIsBlocked && (
                   <div className="space-y-2.5">
-                    <div className="text-xs font-bold text-slate-700 uppercase">
+                    <div className="text-xs font-bold text-[#a792ff] uppercase">
                       Turnos e Vagas para esta data
                     </div>
                     {SHIFTS.map((s) => {
@@ -782,9 +767,9 @@ export default function AdminSettingsPage() {
                       return (
                         <div
                           key={s.key}
-                          className="rounded-xl border border-slate-200 p-3 space-y-2"
+                          className="rounded-xl border border-[#2e2a61] bg-[#141230] p-3 space-y-2"
                         >
-                          <label className="flex items-center gap-2 text-sm font-bold text-slate-800 cursor-pointer">
+                          <label className="flex items-center gap-2 text-sm font-bold text-white cursor-pointer">
                             <input
                               type="checkbox"
                               checked={cfg.enabled}
@@ -794,14 +779,14 @@ export default function AdminSettingsPage() {
                                   [s.key]: { ...prev[s.key], enabled: e.target.checked },
                                 }))
                               }
-                              className="h-4 w-4 rounded border-slate-300 text-teal-600"
+                              className="h-4 w-4 rounded accent-[#8b6dff]"
                             />
                             {s.label}
                           </label>
                           {cfg.enabled && (
                             <div className="grid grid-cols-2 gap-2 text-xs">
                               <div>
-                                <label className="block text-slate-500 mb-1">
+                                <label className="block text-[#9c99c4] mb-1">
                                   Máx. vagas
                                 </label>
                                 <input
@@ -818,11 +803,11 @@ export default function AdminSettingsPage() {
                                       },
                                     }))
                                   }
-                                  className="w-full h-9 px-2.5 rounded-lg border border-slate-300 font-semibold"
+                                  className="w-full h-9 px-2.5 rounded-lg border border-[#3a3675] bg-[#1b183d] text-white font-bold"
                                 />
                               </div>
                               <div>
-                                <label className="block text-indigo-700 mb-1">
+                                <label className="block text-[#b39eff] mb-1">
                                   Reserva Part.
                                 </label>
                                 <input
@@ -842,7 +827,7 @@ export default function AdminSettingsPage() {
                                       },
                                     }))
                                   }
-                                  className="w-full h-9 px-2.5 rounded-lg border border-indigo-200 font-semibold"
+                                  className="w-full h-9 px-2.5 rounded-lg border border-[#5c4ab8] bg-[#1b183d] text-white font-bold"
                                 />
                               </div>
                             </div>
@@ -857,7 +842,7 @@ export default function AdminSettingsPage() {
                   type="button"
                   disabled={savingDate}
                   onClick={saveDateException}
-                  className="w-full h-11 rounded-xl bg-teal-600 text-white font-bold flex items-center justify-center gap-2 hover:bg-teal-700 disabled:opacity-50"
+                  className="w-full h-11 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50"
                 >
                   {savingDate ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -875,12 +860,12 @@ export default function AdminSettingsPage() {
       {/* ================= ABA 3: OPÇÕES FIXAS DO FORMULÁRIO ================= */}
       {tab === "options" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Convênios / Particular */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4">
+          {/* Convênios */}
+          <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 space-y-4 shadow-lg shadow-black/20">
             <div>
-              <h3 className="font-bold text-slate-900">Convênios / Particular</h3>
-              <p className="text-xs text-slate-500">
-                Opções fixas exibidas no portal (flag de prioridade é interna)
+              <h3 className="font-bold text-white">Convênios / Particular</h3>
+              <p className="text-xs text-[#9c99c4]">
+                Opções fixas do portal (flag de prioridade é interna)
               </p>
             </div>
 
@@ -893,34 +878,35 @@ export default function AdminSettingsPage() {
                     setNewName((p) => ({ ...p, insurance: e.target.value }))
                   }
                   placeholder="Novo convênio..."
-                  className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm"
+                  className="flex-1 h-9 px-3 rounded-lg border border-[#322e66] bg-[#13112d] text-white text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => createOption("insurance")}
-                  className="h-9 px-3 rounded-lg bg-teal-600 text-white text-xs font-bold flex items-center gap-1"
+                  className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-xs font-bold flex items-center gap-1"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add
                 </button>
               </div>
-              <label className="flex items-center gap-2 text-xs text-indigo-700 font-medium">
+              <label className="flex items-center gap-2 text-xs text-[#b39eff] font-medium">
                 <input
                   type="checkbox"
                   checked={newPrivatePriority}
                   onChange={(e) => setNewPrivatePriority(e.target.checked)}
+                  className="accent-[#8b6dff]"
                 />
                 Prioridade Silenciosa (Particular)
               </label>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[#282454]">
               {insurances.map((opt) => (
                 <div key={opt.id} className="py-2.5 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={`text-sm font-semibold ${
-                        opt.active ? "text-slate-900" : "text-slate-400 line-through"
+                        opt.active ? "text-white" : "text-[#6f6c9e] line-through"
                       }`}
                     >
                       {opt.name}
@@ -933,8 +919,8 @@ export default function AdminSettingsPage() {
                         }
                         className={`text-[11px] font-bold px-2 py-1 rounded-md border ${
                           opt.active
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-100 text-slate-500 border-slate-200"
+                            ? "bg-emerald-400/15 text-emerald-300 border-emerald-400/35"
+                            : "bg-[#141230] text-[#8d8ab8] border-[#2e2a61]"
                         }`}
                       >
                         {opt.active ? "Ativo" : "Inativo"}
@@ -942,14 +928,14 @@ export default function AdminSettingsPage() {
                       <button
                         type="button"
                         onClick={() => deleteOption("insurance", opt.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600"
+                        className="p-1.5 text-[#7d79ad] hover:text-rose-400"
                         title="Excluir"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-indigo-700 cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-[11px] text-[#b39eff] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={Boolean(opt.isPrivatePriority)}
@@ -958,6 +944,7 @@ export default function AdminSettingsPage() {
                           isPrivatePriority: e.target.checked,
                         })
                       }
+                      className="accent-[#8b6dff]"
                     />
                     Prioridade Silenciosa (Particular)
                   </label>
@@ -967,10 +954,10 @@ export default function AdminSettingsPage() {
           </div>
 
           {/* Tipo de Consulta */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4">
+          <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 space-y-4 shadow-lg shadow-black/20">
             <div>
-              <h3 className="font-bold text-slate-900">Tipo de Consulta</h3>
-              <p className="text-xs text-slate-500">Ex: Primeira vez, Retorno</p>
+              <h3 className="font-bold text-white">Tipo de Consulta</h3>
+              <p className="text-xs text-[#9c99c4]">Ex: Primeira vez, Retorno</p>
             </div>
 
             <div className="flex gap-2">
@@ -981,19 +968,19 @@ export default function AdminSettingsPage() {
                   setNewName((p) => ({ ...p, visitType: e.target.value }))
                 }
                 placeholder="Novo tipo..."
-                className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm"
+                className="flex-1 h-9 px-3 rounded-lg border border-[#322e66] bg-[#13112d] text-white text-sm"
               />
               <button
                 type="button"
                 onClick={() => createOption("visitType")}
-                className="h-9 px-3 rounded-lg bg-teal-600 text-white text-xs font-bold flex items-center gap-1"
+                className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-xs font-bold flex items-center gap-1"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add
               </button>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[#282454]">
               {visitTypes.map((opt) => (
                 <div
                   key={opt.id}
@@ -1001,7 +988,7 @@ export default function AdminSettingsPage() {
                 >
                   <span
                     className={`text-sm font-semibold ${
-                      opt.active ? "text-slate-900" : "text-slate-400 line-through"
+                      opt.active ? "text-white" : "text-[#6f6c9e] line-through"
                     }`}
                   >
                     {opt.name}
@@ -1014,8 +1001,8 @@ export default function AdminSettingsPage() {
                       }
                       className={`text-[11px] font-bold px-2 py-1 rounded-md border ${
                         opt.active
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-100 text-slate-500 border-slate-200"
+                          ? "bg-emerald-400/15 text-emerald-300 border-emerald-400/35"
+                          : "bg-[#141230] text-[#8d8ab8] border-[#2e2a61]"
                       }`}
                     >
                       {opt.active ? "Ativo" : "Inativo"}
@@ -1023,7 +1010,7 @@ export default function AdminSettingsPage() {
                     <button
                       type="button"
                       onClick={() => deleteOption("visitType", opt.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600"
+                      className="p-1.5 text-[#7d79ad] hover:text-rose-400"
                       title="Excluir"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -1035,10 +1022,10 @@ export default function AdminSettingsPage() {
           </div>
 
           {/* Joelho Avaliado */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4">
+          <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 space-y-4 shadow-lg shadow-black/20">
             <div>
-              <h3 className="font-bold text-slate-900">Joelho Avaliado</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="font-bold text-white">Joelho Avaliado</h3>
+              <p className="text-xs text-[#9c99c4]">
                 Ex: Joelho Direito, Joelho Esquerdo, Ambos
               </p>
             </div>
@@ -1049,19 +1036,19 @@ export default function AdminSettingsPage() {
                 value={newName.knee}
                 onChange={(e) => setNewName((p) => ({ ...p, knee: e.target.value }))}
                 placeholder="Nova opção..."
-                className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm"
+                className="flex-1 h-9 px-3 rounded-lg border border-[#322e66] bg-[#13112d] text-white text-sm"
               />
               <button
                 type="button"
                 onClick={() => createOption("knee")}
-                className="h-9 px-3 rounded-lg bg-teal-600 text-white text-xs font-bold flex items-center gap-1"
+                className="h-9 px-3 rounded-lg bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white text-xs font-bold flex items-center gap-1"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add
               </button>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[#282454]">
               {kneeOptions.map((opt) => (
                 <div
                   key={opt.id}
@@ -1069,7 +1056,7 @@ export default function AdminSettingsPage() {
                 >
                   <span
                     className={`text-sm font-semibold ${
-                      opt.active ? "text-slate-900" : "text-slate-400 line-through"
+                      opt.active ? "text-white" : "text-[#6f6c9e] line-through"
                     }`}
                   >
                     {opt.name}
@@ -1082,8 +1069,8 @@ export default function AdminSettingsPage() {
                       }
                       className={`text-[11px] font-bold px-2 py-1 rounded-md border ${
                         opt.active
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-100 text-slate-500 border-slate-200"
+                          ? "bg-emerald-400/15 text-emerald-300 border-emerald-400/35"
+                          : "bg-[#141230] text-[#8d8ab8] border-[#2e2a61]"
                       }`}
                     >
                       {opt.active ? "Ativo" : "Inativo"}
@@ -1091,7 +1078,7 @@ export default function AdminSettingsPage() {
                     <button
                       type="button"
                       onClick={() => deleteOption("knee", opt.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600"
+                      className="p-1.5 text-[#7d79ad] hover:text-rose-400"
                       title="Excluir"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -1108,10 +1095,10 @@ export default function AdminSettingsPage() {
       {tab === "general" && (
         <form
           onSubmit={saveGeneralSettings}
-          className="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-5 shadow-xs"
+          className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-6 max-w-2xl space-y-5 shadow-lg shadow-black/20"
         >
           <div>
-            <label className="block text-sm font-bold text-slate-800 mb-1">
+            <label className="block text-sm font-bold text-white mb-1.5">
               Nome do Consultório / Médico
             </label>
             <input
@@ -1121,16 +1108,16 @@ export default function AdminSettingsPage() {
               onChange={(e) =>
                 setSettings((p) => ({ ...p, clinicName: e.target.value }))
               }
-              className="w-full h-11 px-3.5 rounded-xl border border-slate-300 text-sm"
+              className="w-full h-11 px-3.5 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
             />
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-[#9c99c4] mt-1">
               Exibido no portal público do paciente e no cabeçalho dos relatórios
               impressos.
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-800 mb-1">
+            <label className="block text-sm font-bold text-white mb-1.5">
               Janela de agendamento (próximos X dias)
             </label>
             <input
@@ -1145,27 +1132,27 @@ export default function AdminSettingsPage() {
                   bookingWindowDays: Math.max(1, Number(e.target.value)),
                 }))
               }
-              className="w-36 h-11 px-3.5 rounded-xl border border-slate-300 text-sm font-semibold"
+              className="w-36 h-11 px-3.5 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm font-bold"
             />
           </div>
 
-          <label className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+          <label className="flex items-center gap-3 p-3.5 rounded-xl bg-[#141230] border border-[#2e2a61] cursor-pointer">
             <input
               type="checkbox"
               checked={settings.showRemainingSlots}
               onChange={(e) =>
                 setSettings((p) => ({ ...p, showRemainingSlots: e.target.checked }))
               }
-              className="h-4 w-4 rounded border-slate-300 text-teal-600"
+              className="h-4 w-4 rounded accent-[#8b6dff]"
             />
-            <span className="text-sm text-slate-800 font-medium">
+            <span className="text-sm text-[#e3e1fa] font-medium">
               Exibir quantidade de vagas restantes no portal (ex: &quot;Restam 4
               vagas&quot;). Se desmarcado, exibe apenas &quot;Disponível&quot;.
             </span>
           </label>
 
           <div>
-            <label className="block text-sm font-bold text-slate-800 mb-1">
+            <label className="block text-sm font-bold text-white mb-1.5">
               Orientações exibidas na tela de Protocolo
             </label>
             <textarea
@@ -1175,14 +1162,14 @@ export default function AdminSettingsPage() {
               onChange={(e) =>
                 setSettings((p) => ({ ...p, protocolInstructions: e.target.value }))
               }
-              className="w-full p-3.5 rounded-xl border border-slate-300 text-sm"
+              className="w-full p-3.5 rounded-xl border border-[#322e66] bg-[#13112d] text-white text-sm"
             />
           </div>
 
           <button
             type="submit"
             disabled={savingGeneral}
-            className="h-11 px-6 rounded-xl bg-teal-600 text-white font-bold flex items-center gap-2 hover:bg-teal-700 disabled:opacity-50"
+            className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#8f71ff] to-[#6344ff] text-white font-bold flex items-center gap-2 shadow-lg shadow-violet-600/30 hover:brightness-110 disabled:opacity-50"
           >
             {savingGeneral ? (
               <Loader2 className="h-4 w-4 animate-spin" />

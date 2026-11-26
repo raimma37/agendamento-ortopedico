@@ -14,6 +14,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  themeColor: "#12102b",
 };
 
 export default function RootLayout({
@@ -23,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={inter.className}>
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased overflow-x-hidden">
+      <body className="min-h-screen bg-[#12102b] text-[#f1f0ff] antialiased overflow-x-hidden">
         {children}
       </body>
     </html>
