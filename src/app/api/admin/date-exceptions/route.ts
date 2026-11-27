@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import { dateExceptionUpsertSchema } from "@/lib/validations";
 import { formatDateISO, parseDateOnly } from "@/lib/normalize";
 
@@ -34,10 +34,8 @@ function serializeException(ex: {
 }
 
 export async function GET(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   const sp = request.nextUrl.searchParams;
   const month = sp.get("month"); // YYYY-MM
@@ -68,10 +66,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   const body = await request.json();
   const parsed = dateExceptionUpsertSchema.safeParse(body);
@@ -140,10 +136,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   const dateStr = request.nextUrl.searchParams.get("date");
   if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {

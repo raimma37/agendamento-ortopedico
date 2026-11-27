@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 
 const ALLOWED_TEMPLATES = new Set([
   "fluxo-lembrete-cron.json",
@@ -12,10 +12,8 @@ export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ name: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   const { name } = await context.params;
   if (!ALLOWED_TEMPLATES.has(name)) {

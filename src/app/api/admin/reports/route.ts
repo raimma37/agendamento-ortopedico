@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { AppointmentStatus, Prisma, Shift } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import {
   formatDateBR,
   formatDateISO,
@@ -24,10 +24,8 @@ function csvEscape(value: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("reports");
+  if (errorResponse) return errorResponse;
 
   const sp = request.nextUrl.searchParams;
   const startDate = sp.get("startDate") || getTodayISO();

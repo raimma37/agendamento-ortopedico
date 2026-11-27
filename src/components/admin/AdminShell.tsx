@@ -6,35 +6,83 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDays,
   ChevronDown,
+  Crown,
   ExternalLink,
   Loader2,
+  Lock,
   LogOut,
   Menu,
   Printer,
   Settings,
+  ShieldCheck,
   Sparkles,
   Stethoscope,
   Users,
   Webhook,
   X,
 } from "lucide-react";
+import {
+  getFirstAllowedAdminRoute,
+  getRequiredModuleForPath,
+  hasModuleAccess,
+  isSuperAdminUser,
+  type AdminModule,
+} from "@/lib/permissions";
 
-const MENU_PRIMARY = [
-  { href: "/admin", label: "Dashboard", icon: CalendarDays },
-  { href: "/admin/pacientes", label: "Pacientes", icon: Users },
-  { href: "/admin/relatorios", label: "Relatórios & Estatísticas", icon: Printer },
+interface SessionUser {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  isSystemSuperAdmin: boolean;
+  permissions: AdminModule[];
+}
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  module?: AdminModule;
+  superAdminOnly?: boolean;
+}
+
+const MENU_PRIMARY: NavItem[] = [
+  { href: "/admin", label: "Dashboard", icon: CalendarDays, module: "dashboard" },
+  { href: "/admin/pacientes", label: "Pacientes", icon: Users, module: "patients" },
+  {
+    href: "/admin/relatorios",
+    label: "Relatórios & Estatísticas",
+    icon: Printer,
+    module: "reports",
+  },
 ];
 
-const MENU_MANAGE = [
-  { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
-  { href: "/admin/integracoes", label: "Integrações & API", icon: Webhook },
+const MENU_MANAGE: NavItem[] = [
+  {
+    href: "/admin/configuracoes",
+    label: "Configurações",
+    icon: Settings,
+    module: "settings",
+  },
+  {
+    href: "/admin/integracoes",
+    label: "Integrações & API",
+    icon: Webhook,
+    module: "integrations",
+  },
+  {
+    href: "/admin/usuarios",
+    label: "Usuários & Permissões",
+    icon: ShieldCheck,
+    superAdminOnly: true,
+  },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isLoginPage = pathname === "/admin/login";
@@ -65,6 +113,23 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     };
   }, [isLoginPage, router]);
 
+  // Redireciona automaticamente caso o usuário acesse rota de um módulo sem permissão
+  const requiredModule = getRequiredModuleForPath(pathname);
+  const isSuper = isSuperAdminUser(user);
+  const hasCurrentRouteAccess =
+    !requiredModule ||
+    (requiredModule === "users"
+      ? isSuper
+      : hasModuleAccess(user, requiredModule));
+
+  useEffect(() => {
+    if (checking || isLoginPage || !user || hasCurrentRouteAccess) return;
+    const fallback = getFirstAllowedAdminRoute(user);
+    if (fallback && fallback !== pathname) {
+      router.replace(fallback);
+    }
+  }, [checking, isLoginPage, user, hasCurrentRouteAccess, pathname, router]);
+
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/admin/login");
@@ -82,11 +147,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     );
   }
 
-  function renderNavItem(item: {
-    href: string;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }) {
+  const visiblePrimary = MENU_PRIMARY.filter((item) =>
+    item.module ? hasModuleAccess(user, item.module) : true
+  );
+  const visibleManage = MENU_MANAGE.filter((item) => {
+    if (item.superAdminOnly) return isSuper;
+    return item.module ? hasModuleAccess(user, item.module) : true;
+  });
+
+  function renderNavItem(item: NavItem) {
     const Icon = item.icon;
     const active =
       item.href === "/admin"
@@ -163,22 +232,26 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
         {/* Navigation Groups */}
         <nav className="flex-1 px-3.5 py-2 space-y-5 overflow-y-auto">
-          <div>
-            <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6f6c9e]">
-              Menu
+          {visiblePrimary.length > 0 && (
+            <div>
+              <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6f6c9e]">
+                Menu
+              </div>
+              <div className="space-y-1">{visiblePrimary.map(renderNavItem)}</div>
             </div>
-            <div className="space-y-1">{MENU_PRIMARY.map(renderNavItem)}</div>
-          </div>
+          )}
 
-          <div>
-            <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6f6c9e]">
-              Gestão
+          {visibleManage.length > 0 && (
+            <div>
+              <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6f6c9e]">
+                Gestão
+              </div>
+              <div className="space-y-1">{visibleManage.map(renderNavItem)}</div>
             </div>
-            <div className="space-y-1">{MENU_MANAGE.map(renderNavItem)}</div>
-          </div>
+          )}
         </nav>
 
-        {/* Bottom Highlight Gradient Card (Inspired by reference) */}
+        {/* Bottom Highlight Gradient Card */}
         <div className="p-4 space-y-2.5">
           <div className="rounded-2xl bg-gradient-to-br from-[#9e84ff] via-[#8362ff] to-[#6341ff] p-4 text-white shadow-xl shadow-violet-700/30 relative overflow-hidden">
             <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/15 blur-lg" />
@@ -218,20 +291,33 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             Sistema de Agendamento Ortopédico por Cotas • Banco 100% Local
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              href="/admin/relatorios"
-              className="h-9 px-3.5 rounded-xl bg-[#1d1a42] border border-white/35 hover:border-white/85 text-xs font-semibold text-[#d5d3f5] hover:text-white flex items-center gap-2 transition-colors"
-            >
-              <Printer className="h-3.5 w-3.5 text-[#957bff]" />
-              Imprimir A4
-            </Link>
+            {hasModuleAccess(user, "reports") && (
+              <Link
+                href="/admin/relatorios"
+                className="h-9 px-3.5 rounded-xl bg-[#1d1a42] border border-white/35 hover:border-white/85 text-xs font-semibold text-[#d5d3f5] hover:text-white flex items-center gap-2 transition-colors"
+              >
+                <Printer className="h-3.5 w-3.5 text-[#957bff]" />
+                Imprimir A4
+              </Link>
+            )}
             <div className="h-9 pl-2 pr-3 rounded-xl bg-[#1f1c47] border border-[#332f6b] flex items-center gap-2.5">
               <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[#957bff] to-[#3b9eff] text-white text-[11px] font-bold flex items-center justify-center">
-                {(user?.name || "A").slice(0, 1).toUpperCase()}
+                {isSuper ? (
+                  <Crown className="h-3.5 w-3.5" />
+                ) : (
+                  (user?.name || "U").slice(0, 1).toUpperCase()
+                )}
               </div>
-              <span className="text-xs font-semibold text-white">
-                {user?.name || "Admin"}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-white">
+                  {user?.name || "Usuário"}
+                </span>
+                {isSuper && (
+                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                    Superadmin
+                  </span>
+                )}
+              </div>
               <ChevronDown className="h-3.5 w-3.5 text-[#8d8ab8]" />
             </div>
           </div>
@@ -239,7 +325,20 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
         {/* Conteúdo das páginas */}
         <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 print:p-0">
-          {children}
+          {!hasCurrentRouteAccess ? (
+            <div className="max-w-md mx-auto mt-16 bg-[#1b183d] border border-[#2d295e] rounded-2xl p-7 text-center shadow-xl">
+              <div className="h-12 w-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-300 flex items-center justify-center mx-auto mb-3">
+                <Lock className="h-6 w-6" />
+              </div>
+              <h2 className="text-lg font-bold text-white">Acesso Restrito</h2>
+              <p className="text-sm text-[#9c99c4] mt-1">
+                Seu perfil não possui permissão para acessar este módulo. Solicite ao
+                Superadmin a liberação do acesso.
+              </p>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import {
   formatDateBR,
   formatDateISO,
@@ -13,10 +13,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("patients");
+  if (errorResponse) return errorResponse;
 
   const search = request.nextUrl.searchParams.get("search")?.trim();
   const digits = search ? search.replace(/\D/g, "") : "";

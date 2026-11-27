@@ -7,6 +7,7 @@ import {
   SESSION_TTL_SECONDS,
   signSessionToken,
 } from "@/lib/auth";
+import { ADMIN_MODULES, type AdminModule } from "@/lib/permissions";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -57,11 +58,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const isSuper = Boolean(user.isSystemSuperAdmin && user.role === "SUPERADMIN");
+    const validPermissions = isSuper
+      ? [...ADMIN_MODULES]
+      : user.permissions.filter((p): p is AdminModule =>
+          (ADMIN_MODULES as readonly string[]).includes(p)
+        );
+
     const token = await signSessionToken({
       userId: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
+      isSystemSuperAdmin: isSuper,
+      permissions: validPermissions,
     });
 
     const res = NextResponse.json({
@@ -70,6 +80,8 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
+        isSystemSuperAdmin: isSuper,
+        permissions: validPermissions,
       },
     });
 

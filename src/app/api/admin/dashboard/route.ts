@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { AppointmentStatus, Prisma, Shift } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import { resolveDayQuotas } from "@/lib/availability";
 import {
   formatDateBR,
@@ -18,10 +18,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("dashboard");
+  if (errorResponse) return errorResponse;
 
   const sp = request.nextUrl.searchParams;
   const dateStr = sp.get("date") || getTodayISO();

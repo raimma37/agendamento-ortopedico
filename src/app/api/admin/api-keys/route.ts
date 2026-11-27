@@ -1,15 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateNewApiKey, requireAdmin } from "@/lib/auth";
+import { generateNewApiKey, requireModule } from "@/lib/auth";
 import { apiKeyCreateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   const keys = await prisma.apiKey.findMany({
     orderBy: { createdAt: "desc" },
@@ -27,10 +25,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   const body = await request.json();
   const parsed = apiKeyCreateSchema.safeParse(body);
@@ -62,10 +58,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) {

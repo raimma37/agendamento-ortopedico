@@ -130,3 +130,51 @@ export const webhookCreateSchema = z.object({
 export const webhookUpdateSchema = webhookCreateSchema.partial().extend({
   id: z.string().min(1),
 });
+
+export const adminModuleEnum = z.enum([
+  "dashboard",
+  "patients",
+  "reports",
+  "settings",
+  "integrations",
+]);
+
+export const createUserSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome do usuário").max(100),
+  email: z.string().trim().toLowerCase().email("Informe um e-mail válido").max(160),
+  password: z
+    .string()
+    .min(6, "A senha deve ter no mínimo 6 caracteres")
+    .max(128),
+  permissions: z
+    .array(adminModuleEnum)
+    .max(5)
+    .default([]),
+  active: z.boolean().optional().default(true),
+});
+
+export const updateUserSchema = z.object({
+  name: z.string().trim().min(2, "Nome muito curto").max(100).optional(),
+  email: z.string().trim().toLowerCase().email("E-mail inválido").max(160).optional(),
+  password: z
+    .string()
+    .min(6, "A nova senha deve ter no mínimo 6 caracteres")
+    .max(128)
+    .optional()
+    .or(z.literal("")),
+  permissions: z.array(adminModuleEnum).max(5).optional(),
+  active: z.boolean().optional(),
+});
+
+// Conta Superadmin padrão: SOMENTE e-mail e senha podem ser alterados
+export const updateSuperAdminSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email("E-mail inválido").max(160).optional(),
+    password: z
+      .string()
+      .min(6, "A nova senha deve ter no mínimo 6 caracteres")
+      .max(128)
+      .optional()
+      .or(z.literal("")),
+  })
+  .strict();

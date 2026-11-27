@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import { updateAppointmentActionSchema } from "@/lib/validations";
 import { dispatchWebhookEvent } from "@/lib/webhooks";
 
@@ -8,10 +8,8 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("dashboard");
+  if (errorResponse) return errorResponse;
 
   const { id } = await context.params;
   const body = await request.json();

@@ -6,24 +6,48 @@ const prisma = new PrismaClient();
 async function main() {
   console.log(">> Executando seed inicial do Sistema de Agendamento Ortopédico...");
 
-  // 1. Admin user
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@clinica.com.br";
+  // 1. Superadmin padrão (fixo, irrevogável e indestrutível)
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@clinica.com.br").toLowerCase().trim();
   const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-  const adminName = process.env.ADMIN_NAME || "Administrador";
+  const adminName = process.env.ADMIN_NAME || "Superadmin";
   const passwordHash = await bcrypt.hash(adminPassword, 10);
 
-  await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {},
-    create: {
-      name: adminName,
-      email: adminEmail,
-      passwordHash,
-      role: "ADMIN",
-      active: true,
-    },
+  const existingSuperAdmin = await prisma.user.findFirst({
+    where: { isSystemSuperAdmin: true },
   });
-  console.log(`   - Admin configurado: ${adminEmail}`);
+
+  if (!existingSuperAdmin) {
+    const existingByEmail = await prisma.user.findUnique({
+      where: { email: adminEmail },
+    });
+
+    if (existingByEmail) {
+      await prisma.user.update({
+        where: { id: existingByEmail.id },
+        data: {
+          role: "SUPERADMIN",
+          isSystemSuperAdmin: true,
+          active: true,
+        },
+      });
+      console.log(`   - Conta padrão promovida a SUPERADMIN: ${existingByEmail.email}`);
+    } else {
+      await prisma.user.create({
+        data: {
+          name: adminName,
+          email: adminEmail,
+          passwordHash,
+          role: "SUPERADMIN",
+          isSystemSuperAdmin: true,
+          permissions: [],
+          active: true,
+        },
+      });
+      console.log(`   - SUPERADMIN criado: ${adminEmail}`);
+    }
+  } else {
+    console.log(`   - SUPERADMIN já configurado: ${existingSuperAdmin.email}`);
+  }
 
   // 2. ClinicSettings
   await prisma.clinicSettings.upsert({

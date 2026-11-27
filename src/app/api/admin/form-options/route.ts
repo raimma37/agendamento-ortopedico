@@ -1,15 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import { formOptionCreateSchema, formOptionUpdateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   const [insurances, visitTypes, kneeOptions, locations] = await Promise.all([
     prisma.insuranceOption.findMany({
@@ -30,10 +28,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   try {
     const body = await request.json();
@@ -79,10 +75,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   try {
     const body = await request.json();
@@ -150,10 +144,8 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   const sp = request.nextUrl.searchParams;
   const type = sp.get("type");

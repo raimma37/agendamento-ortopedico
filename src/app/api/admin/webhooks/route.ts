@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import { webhookCreateSchema, webhookUpdateSchema } from "@/lib/validations";
 import { assertSafeWebhookUrl } from "@/lib/webhooks";
 import { encryptSecret, maskSecretValue } from "@/lib/crypto";
@@ -8,10 +8,8 @@ import { encryptSecret, maskSecretValue } from "@/lib/crypto";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   const [webhooks, logs] = await Promise.all([
     prisma.webhookConfig.findMany({ orderBy: { createdAt: "desc" } }),
@@ -34,10 +32,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   const body = await request.json();
   const parsed = webhookCreateSchema.safeParse(body);
@@ -69,10 +65,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   const body = await request.json();
   const parsed = webhookUpdateSchema.safeParse(body);
@@ -115,10 +109,8 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) {

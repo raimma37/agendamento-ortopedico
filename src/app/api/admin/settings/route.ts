@@ -1,15 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import { clinicSettingsUpdateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   const settings = await prisma.clinicSettings.upsert({
     where: { id: 1 },
@@ -21,10 +19,8 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("settings");
+  if (errorResponse) return errorResponse;
 
   const body = await request.json();
   const parsed = clinicSettingsUpdateSchema.safeParse(body);

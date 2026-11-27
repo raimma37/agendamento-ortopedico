@@ -1,9 +1,15 @@
 import crypto from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "./prisma";
 import { checkRateLimit, getClientIp } from "./rate-limit";
+import {
+  ADMIN_MODULES,
+  hasModuleAccess,
+  isSuperAdminUser,
+  type AdminModule,
+} from "./permissions";
 
 export const SESSION_COOKIE_NAME = "agd_admin_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 24; // 24 horas
@@ -30,10 +36,18 @@ export interface AdminSessionPayload {
   email: string;
   name: string;
   role: string;
+  isSystemSuperAdmin: boolean;
+  permissions: AdminModule[];
 }
 
 export async function signSessionToken(payload: AdminSessionPayload): Promise<string> {
-  return new SignJWT({ ...payload })
+  return new SignJWT({
+    userId: payload.userId,
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+    isSystemSuperAdmin: payload.isSystemSuperAdmin,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuer(JWT_ISSUER)
     .setAudience(JWT_AUDIENCE)
@@ -44,7 +58,7 @@ export async function signSessionToken(payload: AdminSessionPayload): Promise<st
 
 export async function verifySessionToken(
   token: string
-): Promise<AdminSessionPayload | null> {
+): Promise<Pick<AdminSessionPayload, "userId" | "email" | "name" | "role"> | null> {
   try {
     const { payload } = await jwtVerify(token, getJwtSecret(), {
       algorithms: ["HS256"],
@@ -55,8 +69,8 @@ export async function verifySessionToken(
     return {
       userId: String(payload.userId),
       email: String(payload.email),
-      name: String(payload.name || "Admin"),
-      role: String(payload.role || "ADMIN"),
+      name: String(payload.name || "Usuário"),
+      role: String(payload.role || "USER"),
     };
   } catch {
     return null;
@@ -70,26 +84,93 @@ export async function getAdminSession(): Promise<AdminSessionPayload | null> {
   const session = await verifySessionToken(token);
   if (!session) return null;
 
-  // Verifica no banco se o administrador permanece ativo (revogação imediata)
+  // Verifica no banco se o usuário permanece ativo e lê permissões atualizadas em tempo real
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, email: true, name: true, role: true, active: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      active: true,
+      isSystemSuperAdmin: true,
+      permissions: true,
+    },
   });
 
-  if (!user || !user.active || user.role !== "ADMIN") {
+  if (!user || !user.active) {
     return null;
   }
+
+  const isSuper = Boolean(user.isSystemSuperAdmin && user.role === "SUPERADMIN");
+  const validPermissions = isSuper
+    ? [...ADMIN_MODULES]
+    : user.permissions.filter((p): p is AdminModule =>
+        (ADMIN_MODULES as readonly string[]).includes(p)
+      );
 
   return {
     userId: user.id,
     email: user.email,
     name: user.name,
     role: user.role,
+    isSystemSuperAdmin: isSuper,
+    permissions: validPermissions,
   };
 }
 
 export async function requireAdmin(): Promise<AdminSessionPayload | null> {
   return getAdminSession();
+}
+
+export async function requireModule(moduleId: AdminModule): Promise<
+  | { session: AdminSessionPayload; errorResponse: null }
+  | { session: null; errorResponse: NextResponse }
+> {
+  const session = await getAdminSession();
+  if (!session) {
+    return {
+      session: null,
+      errorResponse: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
+    };
+  }
+
+  if (!hasModuleAccess(session, moduleId)) {
+    return {
+      session: null,
+      errorResponse: NextResponse.json(
+        { error: "Você não tem permissão para acessar este módulo." },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { session, errorResponse: null };
+}
+
+export async function requireSuperAdmin(): Promise<
+  | { session: AdminSessionPayload; errorResponse: null }
+  | { session: null; errorResponse: NextResponse }
+> {
+  const session = await getAdminSession();
+  if (!session) {
+    return {
+      session: null,
+      errorResponse: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
+    };
+  }
+
+  if (!isSuperAdminUser(session)) {
+    return {
+      session: null,
+      errorResponse: NextResponse.json(
+        { error: "Acesso restrito exclusivamente ao Superadmin." },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { session, errorResponse: null };
 }
 
 export function hashApiKey(rawKey: string): string {

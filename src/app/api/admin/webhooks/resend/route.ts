@@ -1,12 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireModule } from "@/lib/auth";
 import { resendWebhookLog } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const { errorResponse } = await requireModule("integrations");
+  if (errorResponse) return errorResponse;
 
   try {
     const { logId } = await request.json();
