@@ -586,11 +586,13 @@ export default function PublicBookingFlow() {
                           </div>
                           {locBadge && (
                             <div
-                              className={`text-[10px] truncate mt-0.5 font-medium ${
-                                active ? "text-violet-100" : "text-[#7dd3fc]"
+                              className={`text-[10px] truncate mt-1 font-semibold flex items-center justify-center gap-0.5 ${
+                                active ? "text-white" : "text-[#7dd3fc]"
                               }`}
+                              title={locNames.join(" / ")}
                             >
-                              {locBadge}
+                              <MapPin className="h-2.5 w-2.5 shrink-0" />
+                              <span className="truncate">{locBadge}</span>
                             </div>
                           )}
                         </button>
@@ -713,16 +715,19 @@ export default function PublicBookingFlow() {
                                       : `Turno da ${s.shiftLabel}`}
                                   </div>
                                   {s.location ? (
-                                    <div className="mt-1 space-y-0.5">
-                                      <div className="text-xs font-bold text-[#7dd3fc] flex items-center gap-1">
+                                    <div className="mt-1.5 rounded-lg bg-[#4ea8ff]/12 border border-[#4ea8ff]/35 px-2.5 py-1.5 space-y-0.5">
+                                      <div className="text-xs font-bold text-[#7dd3fc] flex items-center gap-1.5">
                                         <MapPin className="h-3.5 w-3.5 shrink-0" />
                                         <span className="truncate">{s.location.name}</span>
                                       </div>
                                       {s.location.address && (
-                                        <div className="text-[11px] text-[#9c99c4] truncate">
+                                        <div className="text-[11px] text-[#c7c4eb] leading-snug">
                                           {s.location.address}
                                         </div>
                                       )}
+                                      <div className="text-[10px] text-[#9c99c4]">
+                                        Atendimento por ordem de chegada
+                                      </div>
                                     </div>
                                   ) : (
                                     <div className="text-xs text-[#9c99c4] mt-0.5">
@@ -751,6 +756,32 @@ export default function PublicBookingFlow() {
                           );
                         })}
                     </div>
+
+                    {/* Destaque do Local confirmado para a data e turno escolhidos */}
+                    {selectedShiftInfo?.location && (
+                      <div className="rounded-2xl bg-gradient-to-r from-[#1a2c54] to-[#1e2054] border border-[#4ea8ff]/50 p-4 flex items-start gap-3 shadow-lg shadow-black/25">
+                        <div className="h-10 w-10 rounded-xl bg-[#4ea8ff]/20 border border-[#4ea8ff]/40 flex items-center justify-center shrink-0">
+                          <Building2 className="h-5 w-5 text-[#7dd3fc]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-bold uppercase tracking-wider text-[#7dd3fc]">
+                            Local de Atendimento Selecionado
+                          </div>
+                          <div className="text-sm sm:text-base font-extrabold text-white mt-0.5">
+                            {selectedShiftInfo.location.name}
+                          </div>
+                          {selectedShiftInfo.location.address && (
+                            <div className="text-xs text-[#d5d3f5] mt-0.5">
+                              {selectedShiftInfo.location.address}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-[#9c99c4] mt-1">
+                            {formatDateBR(selectedDate)} ({getWeekdayLabel(selectedDate)}) •{" "}
+                            {selectedShiftInfo.shiftLabel}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </section>
                 )}
               </>
@@ -780,41 +811,51 @@ export default function PublicBookingFlow() {
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Resumo da escolha do Passo 1 */}
-            <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 flex items-start justify-between gap-3">
-              <div className="space-y-1.5 min-w-0">
-                <div className="flex items-center gap-2 text-sm">
-                  <CalendarIcon className="h-4 w-4 text-[#957bff] shrink-0" />
-                  <span className="font-bold text-white">
-                    {formatDateBR(selectedDate)} ({getWeekdayLabel(selectedDate)})
-                  </span>
-                  <span className="text-[#9c99c4]">
-                    • {selectedShiftInfo?.shiftLabel || selectedShift}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#252154] text-[#d5d3f5] font-semibold border border-[#3a3578]">
-                    {selectedInsuranceObj?.name}
-                  </span>
-                  {selectedShiftInfo?.location && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#4ea8ff]/15 text-[#7dd3fc] font-semibold border border-[#4ea8ff]/35">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      {selectedShiftInfo.location.name}
+            <div className="bg-[#1b183d] rounded-2xl border border-[#2d295e] p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center gap-2 text-sm">
+                    <CalendarIcon className="h-4 w-4 text-[#957bff] shrink-0" />
+                    <span className="font-bold text-white">
+                      {formatDateBR(selectedDate)} ({getWeekdayLabel(selectedDate)})
                     </span>
-                  )}
+                    <span className="text-[#9c99c4]">
+                      • {selectedShiftInfo?.shiftLabel || selectedShift}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#252154] text-[#d5d3f5] font-semibold border border-[#3a3578]">
+                      {selectedInsuranceObj?.name}
+                    </span>
+                  </div>
                 </div>
-                {selectedShiftInfo?.location?.address && (
-                  <p className="text-[11px] text-[#9c99c4]">
-                    {selectedShiftInfo.location.address}
-                  </p>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="text-xs font-bold text-white px-3 py-1.5 rounded-lg bg-[#252154] border border-white/40 hover:border-white shrink-0 transition-colors"
+                >
+                  Alterar
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="text-xs font-bold text-white px-3 py-1.5 rounded-lg bg-[#252154] border border-white/40 hover:border-white shrink-0 transition-colors"
-              >
-                Alterar
-              </button>
+
+              {selectedShiftInfo?.location && (
+                <div className="rounded-xl bg-[#4ea8ff]/12 border border-[#4ea8ff]/40 px-3.5 py-2.5 flex items-start gap-2.5">
+                  <Building2 className="h-4 w-4 text-[#7dd3fc] shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7dd3fc]">
+                      Local de Atendimento
+                    </div>
+                    <div className="text-sm font-bold text-white leading-snug">
+                      {selectedShiftInfo.location.name}
+                    </div>
+                    {selectedShiftInfo.location.address && (
+                      <div className="text-xs text-[#c7c4eb] mt-0.5">
+                        {selectedShiftInfo.location.address}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {submitError && (

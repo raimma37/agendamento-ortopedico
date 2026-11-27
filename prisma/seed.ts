@@ -170,7 +170,27 @@ async function main() {
       create: loc,
     });
   }
-  console.log("   - Locais de atendimento configurados.");
+
+  // Vincula locais padrão às cotas semanais ativas que ainda não possuem local definido
+  const clinicaLoc = await prisma.locationOption.findUnique({
+    where: { name: "Clínica Particular" },
+  });
+  const hospitalLoc = await prisma.locationOption.findUnique({
+    where: { name: "Hospital Porto Dias" },
+  });
+  if (clinicaLoc) {
+    await prisma.weeklyQuota.updateMany({
+      where: { active: true, shift: Shift.MORNING, locationId: null },
+      data: { locationId: clinicaLoc.id },
+    });
+  }
+  if (hospitalLoc) {
+    await prisma.weeklyQuota.updateMany({
+      where: { active: true, shift: Shift.AFTERNOON, locationId: null },
+      data: { locationId: hospitalLoc.id },
+    });
+  }
+  console.log("   - Locais de atendimento configurados e vinculados aos turnos padrão.");
 
   console.log(">> Seed finalizado com sucesso!");
 }
